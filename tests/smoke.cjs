@@ -22,7 +22,7 @@ const server = http.createServer(async (req, res) => {
     }
     const file = pathname.slice(prefix.length) || "index.html";
     if (
-      !/^(index\.html|app\.js|model\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
+      !/^(index\.html|app\.js|model\.js|passport\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
         file,
       ) ||
       file.includes("..")
@@ -530,6 +530,126 @@ const server = http.createServer(async (req, res) => {
     console.log("PASS: distinct audience dashboards, scoped homeowner views, consent updates, readiness queues and responsive layouts");
     assert.deepEqual(errors, []);
     await audience.close();
+    const passportContext = await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:"reduce"});
+    const passport = await passportContext.newPage();
+    passport.on("pageerror",e=>errors.push(e.message));
+    await passport.goto(base+prefix);
+    const passportRole = async id => {
+      await passport.locator(".workspace-context .perspective").click();
+      await passport.locator(`.modal [data-role="${id}"]`).click();
+      await passport.locator('.sidebar [data-page="passport"]').click();
+    };
+    await passportRole("owner");
+    assert.equal(await passport.locator("#passport-case").count(),0);
+    assert.match(await passport.locator(".passport-cover").textContent(),/RP-RC-026/);
+    assert.equal(await passport.locator(".passport-cover .badge.clay").textContent(),"Review incomplete");
+    assert.doesNotMatch(await passport.locator("#main-content").textContent(),/Bintaro Courtyard/);
+    await passport.getByRole("button",{name:"Edit property facts",exact:true}).click();
+    await passport.locator('[name="address"]').fill("Jl. Contoh 10, Bekasi");
+    await passport.locator('[name="buildingArea"]').fill("97.5");
+    await passport.locator('[name="yearBuilt"]').fill("2002");
+    await passport.locator('[name="source"]').fill("Fictional homeowner property brief");
+    await passport.getByRole("button",{name:"Save reported property facts",exact:true}).click();
+    assert.match(await passport.locator(".passport-facts").textContent(),/Jl. Contoh 10, Bekasi/);
+    assert.match(await passport.locator(".passport-facts").textContent(),/97.5 m²/);
+    await passport.locator('[data-passport-section="care"]').click();
+    assert.equal(await passport.evaluate(()=>document.activeElement.id),"passport-care");
+    await passport.getByRole("button",{name:"Add care record",exact:true}).click();
+    await passport.locator('[name="title"]').fill("Wet area <warranty>");
+    await passport.locator('[name="recordDate"]').fill("2026-10-17");
+    await passport.locator('[name="dueDate"]').fill("2025-10-17");
+    await passport.locator('[name="source"]').fill("DEMO-WARRANTY-01");
+    await passport.locator('[name="detail"]').fill("PRIVATE CARE DETAIL owner@example.test");
+    await passport.getByRole("button",{name:"Save reported record",exact:true}).click();
+    assert.match(await passport.locator(".form-error").textContent(),/on or after/);
+    assert.equal(await passport.evaluate(()=>activeCase().passportRecords?.length||0),0);
+    await passport.locator('[name="dueDate"]').fill("2027-10-17");
+    await passport.getByRole("button",{name:"Save reported record",exact:true}).click();
+    assert.match(await passport.locator(".passport-care-list").textContent(),/Wet area <warranty>.*Reported/);
+    assert.equal(await passport.locator(".passport-care-list warranty").count(),0);
+    await passport.reload();
+    await passportRole("reviewer");
+    assert.equal(await passport.evaluate(()=>activeCase().passportRecords.length),1);
+    await passport.locator('[data-passport-record]').click();
+    await passport.locator('[name="status"]').selectOption("Needs correction");
+    await passport.locator('[name="note"]').fill("Provide the revised warranty source reference.");
+    await passport.getByRole("button",{name:"Save care record review",exact:true}).click();
+    await passportRole("owner");
+    await passport.locator('[data-passport-record]').click();
+    assert.equal(await passport.getByRole("button",{name:"Save care record review",exact:true}).count(),0);
+    await passport.getByRole("button",{name:"Amend reported record",exact:true}).click();
+    await passport.locator('[name="source"]').fill("DEMO-WARRANTY-01-REV2");
+    await passport.getByRole("button",{name:"Save reported record",exact:true}).click();
+    assert.equal(await passport.evaluate(()=>activeCase().passportRecords[0].status),"Reported");
+    assert.equal(await passport.evaluate(()=>activeCase().passportRecords[0].revisions[0].status),"Needs correction");
+    assert.equal(await passport.evaluate(()=>activeCase().passportRecords.length),1);
+    await passportRole("reviewer");
+    await passport.locator('[data-passport-record]').click();
+    await passport.locator('[name="note"]').fill("Demo source and coverage reviewed. Not independent verification.");
+    await passport.getByRole("button",{name:"Save care record review",exact:true}).click();
+    assert.match(await passport.locator(".passport-care-list").textContent(),/Reviewer accepted/);
+    assert.equal(await passport.evaluate(()=>activeCase().version),2);
+    assert.equal(await passport.evaluate(()=>activeCase().status),"Budget review");
+    const snapshots=await passport.evaluate(()=>({summary:rcPassportData(activeCase()),full:rcPassportData(activeCase(),"financing")}));
+    assert.equal(snapshots.summary.schema,"RC-PASSPORT/1.0");
+    assert.equal(snapshots.summary.property.address,"Jl. Contoh 10, Bekasi");
+    assert.equal(snapshots.summary.property.factsStatus,"Reported, not verified");
+    assert.equal(snapshots.summary.budgetVersions[0].knownCost,270000000);
+    assert.equal(snapshots.summary.review.budgetReviewed,false);
+    assert.equal(snapshots.summary.review.openEvidence.length,4);
+    assert.equal("owner" in snapshots.summary,false);
+    assert.equal("funding" in snapshots.summary,false);
+    assert.equal("history" in snapshots.summary,false);
+    assert.equal("detail" in snapshots.summary.careRecords[0],false);
+    assert.doesNotMatch(JSON.stringify(snapshots.summary),/Nadia Pratama|PRIVATE CARE DETAIL|owner@example/);
+    assert.equal(snapshots.full.owner,"Nadia Pratama");
+    assert.equal(snapshots.full.funding.gap,240000000);
+    assert.equal(snapshots.full.careRecords[0].detail,"PRIVATE CARE DETAIL owner@example.test");
+    assert.equal(snapshots.full.careRecords[0].reviewedBy,"Dewi Anggraini");
+    assert.equal(snapshots.full.careRecords[0].source,"DEMO-WARRANTY-01-REV2");
+    assert.equal(snapshots.full.careRecords[0].revisions[0].source,"DEMO-WARRANTY-01");
+    await passport.getByRole("button",{name:"Export passport",exact:true}).click();
+    const passportDownload=passport.waitForEvent("download");
+    await passport.getByRole("button",{name:"Download passport JSON",exact:false}).click();
+    const exported=await passportDownload;
+    assert.match(exported.suggestedFilename(),/RP-RC-026-v2-property\.json/);
+    const exportedData=JSON.parse(await fs.readFile(await exported.path(),"utf8"));
+    assert.equal(exportedData.profile,"property");
+    assert.equal(exportedData.careRecords[0].status,"Reviewer accepted");
+    const passportPopup=passport.waitForEvent("popup");
+    await passport.getByRole("button",{name:"Print / save passport as PDF",exact:false}).click();
+    const readable=await passportPopup;
+    await readable.waitForLoadState();
+    assert.match(await readable.locator("body").textContent(),/Renovation Passport/);
+    assert.match(await readable.locator("body").textContent(),/Wet area <warranty>/);
+    assert.doesNotMatch(await readable.locator("body").textContent(),/Nadia Pratama|PRIVATE CARE DETAIL/);
+    await readable.close();
+    await passport.locator('#passport-profile').selectOption("financing");
+    const privateDownload=passport.waitForEvent("download");
+    await passport.getByRole("button",{name:"Download passport JSON",exact:false}).click();
+    const privateData=JSON.parse(await fs.readFile(await (await privateDownload).path(),"utf8"));
+    assert.equal(privateData.funding.ownerCash,30000000);
+    await passport.keyboard.press("Escape");
+    // A frozen passport cannot silently change when the source case changes.
+    assert.equal(await passport.evaluate(()=>{const c=activeCase(),p=rcPassportData(c);rcInvalidate(c);return p.review.budgetVersion===2&&c.version===3&&rcPassportData(c).budgetVersions.length===2}),true);
+    await passportRole("lender");
+    assert.equal(await passport.getByRole("button",{name:"Edit property facts",exact:true}).count(),0);
+    assert.equal(await passport.getByRole("button",{name:"Add care record",exact:true}).count(),0);
+    await passport.locator('[data-passport-record]').click();
+    assert.equal(await passport.getByRole("button",{name:"Save care record review",exact:true}).count(),0);
+    await passport.keyboard.press("Escape");
+    await passport.locator('#passport-case').selectOption('RC-025');
+    assert.match(await passport.locator('.passport-cover').textContent(),/Bintaro Courtyard/);
+    assert.equal(await passport.evaluate(()=>rcPassportData(activeCase(),"financing").claim.id),"CL-012");
+    await passportRole("owner");
+    assert.match(await passport.locator('.passport-cover').textContent(),/Bekasi Family Home/);
+    for (const width of [320,390,768,1024,1440]) {
+      await passport.setViewportSize({width,height:900});
+      assert.equal(await passport.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`Passport overflows at ${width}`);
+    }
+    await passportContext.close();
+    assert.deepEqual(errors,[]);
+    console.log("PASS: property-scoped passports, persistent aftercare and reviewer states, private export profiles, frozen snapshots and printable record");
     const mobile = await browser.newContext({
         viewport: { width: 390, height: 844 },
         reducedMotion: "reduce",

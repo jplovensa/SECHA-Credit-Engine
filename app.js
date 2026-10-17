@@ -83,6 +83,7 @@ const pages = {
   activity: "Activity",
   settings: "Workspace settings",
   case: "Case workspace",
+  passport: "Renovation Passport",
 };
 // Demo audience scoping only. Production authorization must run on the server.
 const OWNER_CASE_ID = "RC-026";
@@ -152,7 +153,9 @@ function notify(text) {
   toastTimer = setTimeout(() => el.classList.remove("visible"), 4500);
 }
 function badge(text) {
-  let kind = /accepted|active|ready|reviewed|reconciled|paid|complete/i.test(
+  let kind = /missing|correction|stale|hold|disputed|not reviewed|review incomplete/i.test(text)
+    ? "clay"
+    : /accepted|active|ready|reviewed|reconciled|paid|complete/i.test(
     text,
   )
     ? "sage"
@@ -197,6 +200,7 @@ function render() {
       ["cases", "layers"],
       ...(ui.role === "owner" ? [] : [["claims", "wallet"]]),
       ["evidence", "file"],
+      ["passport", "file"],
       ["activity", "history"],
     ]
       .map(
@@ -208,6 +212,7 @@ function render() {
       )}</nav><div class="sidebar-bottom"><div class="pilot-card"><span class="pilot-icon">${ico("leaf", 19)}</span><strong>A clearer way to renovate.</strong><button data-action="walkthrough">Take a quick tour ${ico("arrow", 13)}</button></div><button class="nav-item" data-page="settings">${ico("settings")}Workspace settings</button><button class="profile" data-action="perspective"><span class="avatar">${role.initials}</span><div><strong>${role.name}</strong><small>${role.label} · demo</small></div>${ico("down", 12)}</button></div></aside><div class="shell"><header class="topbar"><button class="icon-btn mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${ui.menu}">${ico("menu", 18)}</button><div class="breadcrumb">Workspace ${ico("right", 12)}<strong>${ui.page === "case" ? esc(activeCase().id) : pageLabel(ui.page)}</strong><span class="demo-tag">INTERACTIVE DEMO</span></div><div class="top-actions">${ui.role === "owner" ? `<button class="btn owner-shortcut" data-case="${OWNER_CASE_ID}" data-tab="funding">My funding plan ${ico("arrow",14)}</button>` : `<label class="global-search">${ico("search", 15)}<input id="global-search" placeholder="Find a project…" aria-label="Find a project"><kbd>⌘ K</kbd></label>`}<button class="icon-btn" data-action="notifications" aria-label="Workspace updates" aria-expanded="${ui.notifications}">${ico("bell", 17)}<i class="notification-dot"></i></button><button class="avatar small" data-action="perspective" aria-label="Change demo perspective">${role.initials}</button></div>${ui.notifications ? `<section class="notification-menu panel"><h3>Needs attention</h3><p>${pending} evidence records need review or correction.</p><button class="text-link" data-page="evidence">Open evidence inbox ${ico("arrow", 14)}</button></section>` : ""}</header><main id="main-content" tabindex="-1"><div class="workspace-context"><span class="country"><i></i>INDONESIA <b>/</b> Existing-home renovation</span><button class="perspective" data-action="perspective">${ico("eye", 13)}${role.label} view ${ico("down", 11)}</button></div>${view()}<footer><span>${ico("shield", 12)}Fictional cases · No bank connection or money movement</span><span><i></i>${persistent ? "Saved in this browser" : "Session only"}</span></footer></main></div>`;
 }
 function view() {
+  if (ui.page === "passport") return passportView();
   if (ui.page === "case") return caseView();
   if (ui.page === "cases") return casesView();
   if (ui.page === "claims") return claimsView();
@@ -279,7 +284,7 @@ function caseView() {
     ["changes", "Changes & claims"],
     ["history", "History"],
   ];
-  return `<button class="back-link" data-page="${ui.role === "owner" ? "overview" : "cases"}">${ico("left", 13)}${ui.role === "owner" ? "My home" : "All cases"}</button><div class="case-heading"><div><div class="eyebrow">${esc(c.id)} <span>·</span> ${esc(c.location)}</div><h1>${esc(c.name)}</h1><p>${esc(c.owner)} <span>·</span> Existing-home renovation <span>·</span> ${esc(c.assignee)}</p></div><div class="heading-actions">${badge(c.status)}${btn("Export packet", "export-packet", "download")}</div></div><div class="case-ribbon"><span>${ico("layers", 14)}Budget v${c.version} ${r.accepted ? '<b class="sage-text">Reviewed baseline</b>' : "<b>Review in progress</b>"}</span><span>${ico("clock", 14)}Next: ${esc(c.next)}</span></div><div class="case-tabs" role="tablist" aria-label="Case sections">${tabs.map(([id, t]) => `<button role="tab" id="tab-${id}" aria-selected="${ui.tab === id}" aria-controls="case-tab-panel" tabindex="${ui.tab === id ? "0" : "-1"}" class="${ui.tab === id ? "active" : ""}" data-tab="${id}"><span class="tab-step" aria-hidden="true" data-step="${String(tabs.findIndex(([key]) => key === id) + 1).padStart(2, "0")}"></span>${t}${id === "evidence" && r.docs.length ? `<i>${r.docs.length}</i>` : ""}</button>`).join("")}</div><div id="case-tab-panel" role="tabpanel" aria-labelledby="tab-${ui.tab}">${ui.tab === "funding" ? fundingTab(c) : ui.tab === "evidence" ? evidenceTab(c) : ui.tab === "changes" ? changesTab(c) : ui.tab === "history" ? historyTab(c) : scopeTab(c)}</div>`;
+  return `<button class="back-link" data-page="${ui.role === "owner" ? "overview" : "cases"}">${ico("left", 13)}${ui.role === "owner" ? "My home" : "All cases"}</button><div class="case-heading"><div><div class="eyebrow">${esc(c.id)} <span>·</span> ${esc(c.location)}</div><h1>${esc(c.name)}</h1><p>${esc(c.owner)} <span>·</span> Existing-home renovation <span>·</span> ${esc(c.assignee)}</p></div><div class="heading-actions">${badge(c.status)}${btn("Passport", "open-passport", "file")}${btn("Export packet", "export-packet", "download")}</div></div><div class="case-ribbon"><span>${ico("layers", 14)}Budget v${c.version} ${r.accepted ? '<b class="sage-text">Reviewed baseline</b>' : "<b>Review in progress</b>"}</span><span>${ico("clock", 14)}Next: ${esc(c.next)}</span></div><div class="case-tabs" role="tablist" aria-label="Case sections">${tabs.map(([id, t]) => `<button role="tab" id="tab-${id}" aria-selected="${ui.tab === id}" aria-controls="case-tab-panel" tabindex="${ui.tab === id ? "0" : "-1"}" class="${ui.tab === id ? "active" : ""}" data-tab="${id}"><span class="tab-step" aria-hidden="true" data-step="${String(tabs.findIndex(([key]) => key === id) + 1).padStart(2, "0")}"></span>${t}${id === "evidence" && r.docs.length ? `<i>${r.docs.length}</i>` : ""}</button>`).join("")}</div><div id="case-tab-panel" role="tabpanel" aria-labelledby="tab-${ui.tab}">${ui.tab === "funding" ? fundingTab(c) : ui.tab === "evidence" ? evidenceTab(c) : ui.tab === "changes" ? changesTab(c) : ui.tab === "history" ? historyTab(c) : scopeTab(c)}</div>`;
 }
 function scopeTab(c) {
   const r = rcReadiness(c),
@@ -619,6 +624,13 @@ const actions = {
   "authorize-claim": authorizationModal,
   "record-payment": paymentModal,
   "claim-detail": claimDetail,
+  "open-passport": () => navigate("passport"),
+  "export-passport": passportExportModal,
+  "download-passport": downloadPassport,
+  "print-passport": printPassport,
+  "add-passport-record": addPassportRecord,
+  "edit-passport-property": passportPropertyModal,
+  "edit-passport-record": () => addPassportRecord(document.querySelector('.modal [data-action="edit-passport-record"]')?.dataset.record),
   "export-packet": exportModal,
   "download-json": downloadJSON,
   "print-packet": printPacket,
@@ -727,6 +739,12 @@ document.addEventListener("click", (e) => {
     closeModal();
     navigate("overview");
     notify(`${RC_ROLES[ui.role].label} workspace opened.`);
+  } else if (d.passportSection) {
+    const section = document.getElementById(`passport-${d.passportSection}`);
+    section?.scrollIntoView({block:"start"});
+    section?.focus({preventScroll:true});
+  } else if (d.passportRecord) {
+    passportRecordModal(d.passportRecord);
   } else if (d.evidenceCase) {
     if (!visibleCases().some(c => c.id === d.evidenceCase)) return;
     ui.caseId = d.evidenceCase;

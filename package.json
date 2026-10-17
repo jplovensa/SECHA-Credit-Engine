@@ -4,7 +4,7 @@
   "private": true,
   "description": "RenovaCredit evidence-led renovation finance workflow mockup",
   "scripts": {
-    "check": "node --check app.js && node --check model.js",
+    "check": "node --check app.js && node --check model.js && node --check passport.js",
     "test": "node tests/smoke.cjs"
   },
   "devDependencies": {
