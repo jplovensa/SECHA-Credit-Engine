@@ -64,7 +64,8 @@ const server = http.createServer(async (req, res) => {
       if (r.status() >= 400) failures.push(`${r.status()} ${r.url()}`);
     });
     await page.goto(base + prefix);
-    assert.equal(await page.locator(".metric").count(), 4);
+    assert.equal(await page.locator(".metric").count(), 3);
+    await page.locator('.sidebar [data-page="reports"]').click();
     await page.evaluate(() => document.fonts.ready);
     assert.ok(
       await page.evaluate(() => document.fonts.check("400 13px Inter")),
@@ -75,9 +76,10 @@ const server = http.createServer(async (req, res) => {
       /24 billion/,
     );
     console.log(
-      "PASS: GitHub Pages subpath, local fonts, dashboard and chart controls",
+      "PASS: GitHub Pages subpath, local fonts, simplified dashboard and report chart controls",
     );
 
+    await page.locator('.sidebar [data-page="dashboard"]').click();
     await page.getByRole("button", { name: "New application" }).click();
     await page.locator('[name="project"]').fill("QA Garden Residence");
     await page.locator('[name="borrower"]').fill("Demo Borrower");

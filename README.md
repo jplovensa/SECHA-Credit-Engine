@@ -2,7 +2,7 @@
 
 A locally hosted, responsive property intelligence prototype for Indonesian renovation, makeover, and secondary-property finance. Built around a shared decision brief for **banks, homeowners, property investors, and financial institutions**.
 
-Inter typography, forest-green surfaces, a stakeholder dashboard, property economics, transparent scoring, lending policy gates, and a portable Renovation Passport. The application uses local assets and works on GitHub Pages without a backend, build step, API keys, or runtime CDN access.
+Inter typography, a warm terracotta / sand / sage palette, a simplified stakeholder dashboard, property economics, transparent scoring, lending policy gates, and a portable Renovation Passport. The application uses local assets and works on GitHub Pages without a backend, build step, API keys, or runtime CDN access.
 
 ## Run locally
 
@@ -84,3 +84,9 @@ CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test
 The browser runner starts its own temporary server beneath a GitHub-style project subpath and uses fresh isolated contexts. It checks origination, evidence gates, credit decisions, persistence, repayment calculations, project economics, negative stress scenarios, approval/evidence invalidation, passport contents, policy versioning, stakeholder views, CSV formula escaping, keyboard dialogs, and mobile behavior. It fails on page errors, missing resources, or external requests. Test dependencies are excluded from deployment and are not needed to serve the application.
 
 Inter is bundled under the SIL Open Font License; see `assets/fonts/OFL.txt`.
+
+## Investor demo & visual identity
+
+The overview is deliberately concise: one featured property, three calculated workspace numbers, a short pipeline (or investor comparison), and a three-step product journey. Illustrative trend charts live in Reports. For a pitch, start with the overview, open Property intelligence to show the economics and downside assumptions, then export the Renovation Passport. Switching to Property investor shows a comparison table instead of repeating the pipeline.
+
+The arch-and-leaf RenovaCredit mark represents a home with room to grow. Original vector assets are included as `assets/renovacredit-mark.svg` (square mark) and `assets/renovacredit-logo.svg` (wordmark lockup). The mark also serves as the favicon. Palette: terracotta `#B65C43`, warm ivory `#F8F5EF`, sand `#F0E4D2`, and garden sage `#7E8D68`. All illustrations and brand assets are bundled locally. Sample commitments and modeled property uplift must not be presented as actual platform traction or realized investment returns.
