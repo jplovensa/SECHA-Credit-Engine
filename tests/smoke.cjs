@@ -22,7 +22,7 @@ const server = http.createServer(async (req, res) => {
     }
     const file = pathname.slice(prefix.length) || "index.html";
     if (
-      !/^(index\.html|app\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
+      !/^(index\.html|app\.js|intelligence\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
         file,
       ) ||
       file.includes("..")
@@ -90,19 +90,32 @@ const server = http.createServer(async (req, res) => {
     await page
       .getByRole("button", { name: "Review QA Garden Residence" })
       .click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Approve application", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await page.getByRole("button", { name: "Review demo documents" }).click();
+    for (const box of await page.locator("#documents-form input").all())
+      await box.check();
+    await page
+      .getByRole("button", { name: "Save demo evidence checks" })
+      .click();
+
     await page
       .getByRole("button", { name: "Approve application", exact: true })
       .click();
     assert.match(await page.locator("tbody").textContent(), /Approved/);
     await page.reload();
-    await page.locator('[data-page="portfolio"]').click();
+    await page.locator('.sidebar [data-page="portfolio"]').click();
     assert.match(
       await page.locator(".project-grid").textContent(),
       /QA Garden Residence/,
     );
     console.log("PASS: application creation, search, approval and persistence");
 
-    await page.locator('[data-page="applications"]').click();
+    await page.locator('.sidebar [data-page="applications"]').click();
     await page
       .getByRole("button", { name: "Review Menteng Heritage", exact: true })
       .click();
@@ -128,12 +141,22 @@ const server = http.createServer(async (req, res) => {
     await page
       .getByRole("button", { name: "Mark demo documents complete" })
       .click();
+    for (const box of await page.locator("#documents-form input").all())
+      await box.check();
     await page
-      .getByRole("button", { name: "Approve application", exact: true })
+      .getByRole("button", { name: "Save demo evidence checks" })
       .click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Approve application", exact: true })
+        .isDisabled(),
+      true,
+      "Evidence alone cannot override failed credit policy",
+    );
+    await page.keyboard.press("Escape");
     console.log("PASS: reviewer note requirement and pending-document gate");
 
-    await page.locator('[data-page="engine"]').click();
+    await page.locator('.sidebar [data-page="engine"]').click();
     await page.locator('[name="amount"]').fill("2000");
     await page.locator('[name="value"]').fill("1000");
     await page.getByRole("button", { name: "Run assessment" }).click();
@@ -158,7 +181,7 @@ const server = http.createServer(async (req, res) => {
       "PASS: risk policy boundaries and amortized repayment calculation",
     );
 
-    await page.locator('[data-page="milestones"]').click();
+    await page.locator('.sidebar [data-page="milestones"]').click();
     await page.getByRole("button", { name: "Review evidence" }).click();
     await page
       .getByRole("button", { name: "Record demo verification" })
@@ -181,13 +204,13 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('[data-milestone="2"]').count(), 0);
     console.log("PASS: evidence requirements and sequential milestones");
 
-    await page.locator('[data-page="reports"]').first().click();
+    await page.locator('.sidebar [data-page="reports"]').first().click();
     const download = page.waitForEvent("download");
     await page
       .getByRole("button", { name: "Download CSV", exact: true })
       .click();
     const file = await download;
-    assert.match(file.suggestedFilename(), /^secha-applications-/);
+    assert.match(file.suggestedFilename(), /^renovacredit-applications-/);
     const csv = await fs.readFile(await file.path(), "utf8");
     assert.match(csv, /QA Garden Residence/);
     assert.match(csv, /'=Sample note/);
@@ -199,7 +222,7 @@ const server = http.createServer(async (req, res) => {
       "PASS: decision trail, CSV contents and spreadsheet formula escaping",
     );
 
-    await page.locator('[data-page="settings"]').first().click();
+    await page.locator('.sidebar [data-page="settings"]').first().click();
     await page.locator('[name="name"]').fill("Prototype Reviewer");
     await page.getByRole("button", { name: "Save profile" }).click();
     await page.reload();
@@ -207,10 +230,136 @@ const server = http.createServer(async (req, res) => {
       await page.locator(".profile").textContent(),
       /Prototype Reviewer/,
     );
-    await page.locator('[data-page="settings"]').first().click();
+    await page.locator('.sidebar [data-page="settings"]').first().click();
     await page.getByRole("button", { name: "Switch view" }).click();
     assert.match(await page.locator("h1").textContent(), /next chapter/);
     console.log("PASS: saved profile and borrower preview");
+
+    await page.locator('[data-audience="bank"]').click();
+    await page.locator('.sidebar [data-page="intelligence"]').click();
+    await page
+      .locator("#intelligence-select")
+      .selectOption({ label: "QA Garden Residence" });
+    for (const [name, value] of Object.entries({
+      currentValue: 1000,
+      afterValue: 1500,
+      renovation: 200,
+      contingency: 10,
+      fees: 20,
+      monthlyRent: 10,
+      occupancy: 90,
+      opex: 20,
+      marketDiscount: 10,
+      costOverrun: 15,
+    })) {
+      await page.locator(`#property-form [name="${name}"]`).fill(String(value));
+    }
+    await page
+      .getByRole("button", { name: "Recalculate & save assumptions" })
+      .click();
+    const economics = await page.evaluate(() => {
+      const a = data.apps.find((a) => a.name === "QA Garden Residence");
+      return {
+        r: propertyAnalysis(a),
+        status: a.status,
+        evidence: a.property.evidence,
+        previous: a.previousDecision,
+      };
+    });
+    assert.equal(economics.r.totalCost, 1240);
+    assert.equal(economics.r.surplus, 260);
+    assert.equal(economics.r.stressedSurplus, 80);
+    assert.ok(Math.abs(economics.r.netRent - 86.4) < 1e-8);
+    assert.ok(Math.abs(economics.r.yieldRate - (86.4 / 1240) * 100) < 1e-8);
+    assert.equal(
+      economics.status,
+      "In review",
+      "Changed underwriting inputs invalidate an approval",
+    );
+    assert.equal(economics.evidence.valuation, false);
+    assert.equal(economics.evidence.rab, false);
+    assert.equal(economics.previous.policy.version, 1);
+    await page.locator('[name="marketDiscount"]').fill("100");
+    await page
+      .getByRole("button", { name: "Recalculate & save assumptions" })
+      .click();
+    assert.ok(
+      (await page.evaluate(
+        () => propertyAnalysis(intelligenceProject()).stressedSurplus,
+      )) < 0,
+    );
+    assert.match(
+      await page.locator(".intelligence-layout").textContent(),
+      /downside erodes/,
+    );
+    console.log(
+      "PASS: project economics, rental yield, negative stress, approval invalidation and evidence refresh",
+    );
+
+    await page.locator('.sidebar [data-page="passport"]').click();
+    const passportDownload = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download passport JSON" }).click();
+    const passportFile = await passportDownload;
+    const passport = JSON.parse(
+      await fs.readFile(await passportFile.path(), "utf8"),
+    );
+    assert.equal(passport.schema, "RC-PASSPORT/1.0");
+    assert.equal(passport.property.name, "QA Garden Residence");
+    assert.equal(passport.model.analysis.surplus, 260);
+    assert.equal(passport.decision.previousDecision.policy.version, 1);
+    assert.equal(passport.prototype, true);
+    assert.equal(passport.property.evidence.rab, false);
+    console.log(
+      "PASS: portable passport contains provenance, evidence, calculations and prior decision policy",
+    );
+
+    await page.locator('[data-audience="investor"]').click();
+    assert.equal(await page.locator(".comparison-panel tbody tr").count(), 4);
+    await page.locator('.sidebar [data-page="applications"]').click();
+    await page
+      .getByRole("button", { name: "Review QA Garden Residence" })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Approve application", exact: true })
+        .count(),
+      0,
+    );
+    await page.keyboard.press("Escape");
+    await page.locator('.sidebar [data-page="intelligence"]').click();
+    await page
+      .getByRole("button", { name: "Lending policy", exact: true })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Save lending policy" })
+        .isDisabled(),
+      true,
+    );
+    await page.locator('[data-audience="institution"]').click();
+    assert.equal(await page.locator(".institution-summary").count(), 1);
+    await page.getByRole("button", { name: "Configure policy" }).click();
+    for (const [name, value] of Object.entries({
+      interest: 0,
+      maxLtv: 40,
+      maxDsr: 30,
+      minScore: 90,
+    }))
+      await page.locator(`#policy-form [name="${name}"]`).fill(String(value));
+    await page.getByRole("button", { name: "Save lending policy" }).click();
+    const newPolicy = await page.evaluate(() => ({
+      policy: data.policy,
+      r: assess(data.apps.find((a) => a.name === "QA Garden Residence")),
+    }));
+    assert.equal(newPolicy.policy.version, 2);
+    assert.ok(Math.abs(newPolicy.r.payment - 850 / 60) < 1e-8);
+    assert.ok(Math.abs(newPolicy.r.loanCeiling - 600) < 1e-8);
+    assert.equal(newPolicy.r.decision, "Outside policy");
+    await page.reload();
+    assert.equal(await page.evaluate(() => data.policy.version), 2);
+    console.log(
+      "PASS: four stakeholder perspectives, investor comparison, lender controls, zero-interest edge case and policy persistence",
+    );
 
     // Use another origin-isolated browser context to avoid leaving demo edits.
     const mobile = await browser.newContext({

@@ -48,7 +48,7 @@ const escapeHTML = (v) =>
       ],
   );
 const money = (v) =>
-  `Rp ${new Intl.NumberFormat("en-US", { maximumFractionDigits: v >= 1000 ? 2 : 1 }).format(v >= 1000 ? v / 1000 : v)}${v >= 1000 ? "B" : "M"}`;
+  `Rp ${new Intl.NumberFormat("en-US", { maximumFractionDigits: Math.abs(v) >= 1000 ? 2 : 1 }).format(Math.abs(v) >= 1000 ? v / 1000 : v)}${Math.abs(v) >= 1000 ? "B" : "M"}`;
 const today = () => new Date().toISOString();
 const defaults = [
   {
@@ -164,11 +164,14 @@ const defaults = [
     created: "2026-10-09",
   },
 ];
-const storageKey = "secha-credit-v2";
+const storageKey = "renovacredit-v3";
 let storageAvailable = true;
 function load() {
   try {
-    const data = JSON.parse(localStorage.getItem(storageKey));
+    const data = JSON.parse(
+      localStorage.getItem(storageKey) ||
+        localStorage.getItem("secha-credit-v2"),
+    );
     if (
       data &&
       Array.isArray(data.apps) &&
@@ -206,6 +209,11 @@ data.settings = data.settings || {
   notifications: true,
 };
 data.milestones = Array.isArray(data.milestones) ? data.milestones : [];
+data.policy = { ...renovaDefaultPolicy, ...data.policy };
+data.apps.forEach((a, i) => {
+  a.property = a.property || propertyDefaults(a, i, true);
+  a.score = assess(a).score;
+});
 const state = {
   page: "dashboard",
   filter: "All applications",
@@ -214,6 +222,8 @@ const state = {
   period: "month",
   pagination: 1,
   role: "bank",
+  audience: "bank",
+  intelligenceProject: defaults[0].id,
   menu: false,
   notifications: false,
   selectedProject: defaults[3].id,
@@ -250,7 +260,10 @@ const names = {
   dashboard: "Overview",
   applications: "Applications",
   portfolio: "Portfolio",
-  engine: "Risk engine",
+  engine: "Credit simulator",
+  intelligence: "Property intelligence",
+  passport: "Renovation passport",
+  policy: "Lending policy",
   milestones: "Disbursements",
   reports: "Reports",
   settings: "Settings",
@@ -265,25 +278,30 @@ function navigate(page) {
   state.pagination = 1;
   render();
   window.scrollTo(0, 0);
-  document.title = `${names[page]} · SECHA Credit Engine`;
+  document.title = `${names[page]} · RenovaCredit`;
 }
 function render() {
   const review = data.apps.filter((a) => a.status === "In review").length;
   document.querySelector("#app").innerHTML =
     `${state.menu ? '<div class="mobile-scrim" data-action="menu"></div>' : ""}
-<aside class="sidebar ${state.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-action="home"><img src="assets/favicon.svg" alt=""><div><div class="brand-name">SECHA</div><div class="brand-caption">CREDIT ENGINE</div></div></a>
-<div class="workspace"><div class="workspace-icon">${icon("building", 16)}</div><div><strong>Renovation finance</strong><small>Demo workspace</small></div><span style="margin-left:auto;color:#9ba591">${icon("down", 13)}</span></div>
+<aside class="sidebar ${state.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-action="home"><img src="assets/favicon.svg" alt=""><div><div class="brand-name">renova<span>credit</span></div><div class="brand-caption">INTELLIGENCE BY SECHA</div></div></a>
+<div class="workspace"><div class="workspace-icon">${icon("building", 16)}</div><div><strong>Indonesia workspace</strong><small>Renovation & secondary property</small></div><span style="margin-left:auto;color:#9ba591">${icon("down", 13)}</span></div>
 <div class="nav-label">WORKSPACE</div><nav>${(state.role === "bank"
       ? [
           ["dashboard", "grid"],
           ["applications", "file"],
           ["portfolio", "layers"],
-          ["engine", "shield"],
+          ["intelligence", "shield"],
+          ["engine", "chart"],
+          ["passport", "file"],
           ["milestones", "wallet"],
           ["reports", "chart"],
         ]
       : [
           ["borrower", "building"],
+          ["intelligence", "shield"],
+          ["engine", "chart"],
+          ["passport", "file"],
           ["milestones", "wallet"],
         ]
     )
@@ -292,21 +310,21 @@ function render() {
           `<button data-page="${p}" class="nav-item ${state.page === p ? "active" : ""}" ${state.page === p ? 'aria-current="page"' : ""}>${icon(i)}${names[p]}${p === "applications" ? `<span class="nav-count">${review}</span>` : ""}</button>`,
       )
       .join("")}</nav>
-<div class="sidebar-bottom"><button class="nav-item ${state.page === "settings" ? "active" : ""}" data-page="settings">${icon("settings")}Settings</button><div class="help-card"><div class="flex gap">${icon("leaf", 16)}<strong style="font-size:11px;font-weight:500">Better homes. Better futures.</strong></div><p>Renovation lending, with a clearer view of every possibility.</p><button data-action="guide">Explore the workspace ${icon("up", 12)}</button></div><button class="profile" style="width:100%;text-align:left" data-page="settings"><div class="avatar">${escapeHTML(
+<div class="sidebar-bottom"><button class="nav-item ${state.page === "settings" ? "active" : ""}" data-page="settings">${icon("settings")}Settings</button><div class="help-card"><div class="flex gap">${icon("leaf", 16)}<strong style="font-size:11px;font-weight:500">See the potential. Fund it better.</strong></div><p>One property. A complete picture. From first assessment to final handover.</p><button data-action="guide">Explore the workspace ${icon("up", 12)}</button></div><button class="profile" style="width:100%;text-align:left" data-page="settings"><div class="avatar">${escapeHTML(
       (data.settings.name || "Alex Morgan")
         .split(" ")
         .map((n) => n[0])
         .join("")
         .slice(0, 2),
     )}</div><div><strong>${escapeHTML(data.settings.name)}</strong><small>${state.role === "bank" ? "Credit operations" : "Borrower workspace"}</small></div>${icon("down", 13)}</button></div></aside>
-<div class="main-shell"><header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${state.menu}">${icon("menu", 17)}</button><div class="breadcrumb">Workspace ${icon("right", 10)}<strong>${names[state.page]}</strong><span class="prototype">PROTOTYPE</span></div><div class="top-actions"><label class="search-box">${icon("search", 14)}<input id="global-search" aria-label="Search applications" placeholder="Search anything…" value="${escapeHTML(state.query)}"><span class="key">⌘ K</span></label><button class="icon-button" data-action="notifications" aria-label="Notifications" aria-expanded="${state.notifications}">${icon("bell", 16)}${data.settings.notifications ? '<i class="notification-dot"></i>' : ""}</button><div class="top-divider"></div><button class="avatar" aria-label="Account settings" data-page="settings">${escapeHTML(
+<div class="main-shell"><header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${state.menu}">${icon("menu", 17)}</button><div class="breadcrumb">RenovaCredit ${icon("right", 10)}<strong>${names[state.page]}</strong><span class="prototype">PROTOTYPE</span></div><div class="top-actions"><label class="search-box">${icon("search", 14)}<input id="global-search" aria-label="Search applications" placeholder="Search anything…" value="${escapeHTML(state.query)}"><span class="key">⌘ K</span></label><button class="icon-button" data-action="notifications" aria-label="Notifications" aria-expanded="${state.notifications}">${icon("bell", 16)}${data.settings.notifications ? '<i class="notification-dot"></i>' : ""}</button><div class="top-divider"></div><button class="avatar" aria-label="Account settings" data-page="settings">${escapeHTML(
       (data.settings.name || "Alex Morgan")
         .split(" ")
         .map((n) => n[0])
         .join("")
         .slice(0, 2),
     )}</button></div>${state.notifications ? `<section class="panel notification-panel" aria-label="Notifications"><div class="between"><h3>Workspace updates</h3><button data-action="notifications" aria-label="Close notifications">${icon("close", 14)}</button></div><p>${review} applications are waiting for credit review.</p><p>${data.apps.filter((a) => a.status === "Pending docs").length} application needs supporting documents.</p><button class="text-btn" data-page="applications">Open application queue ${icon("arrow", 13)}</button></section>` : ""}</header>
-<main id="main-content" class="content" tabindex="-1">${view()}<footer class="bottom-note"><span>${icon("shield", 12)} Sample data · Decisions are for demonstration only</span><span class="live">Local workspace${storageAvailable ? " saved" : ""}</span></footer></main></div>`;
+<main id="main-content" class="content" tabindex="-1">${audienceBar()}${view()}<footer class="bottom-note"><span>${icon("shield", 12)} Planning prototype · Human review required</span><span class="live">Local workspace${storageAvailable ? " saved" : ""}</span></footer></main></div>`;
 }
 function heading(title, desc, actions = "") {
   return `<div class="page-heading"><div><h1>${title}</h1><p>${desc}</p></div><div class="heading-actions">${actions}</div></div>`;
@@ -319,6 +337,12 @@ function view() {
       return portfolio();
     case "engine":
       return engine();
+    case "intelligence":
+      return intelligenceView();
+    case "passport":
+      return passportView();
+    case "policy":
+      return policyView();
     case "milestones":
       return milestones();
     case "reports":
@@ -341,14 +365,15 @@ function metrics() {
     ? Math.round((active.length / reviewed.length) * 100)
     : 0;
   const average = Math.round(
-    data.apps.reduce((s, a) => s + a.score, 0) / data.apps.length,
+    data.apps.reduce((s, a) => s + propertyAnalysis(a).renovaScore, 0) /
+      data.apps.length,
   );
   const items = [
     [
       "Active portfolio",
       money(total),
       "wallet",
-      "Sample book",
+      "Approved book",
       "committed",
       [30, 25, 27, 18, 21, 10, 12, 3],
     ],
@@ -369,7 +394,7 @@ function metrics() {
       [23, 26, 19, 21, 12, 15, 9, 3],
     ],
     [
-      "Average credit score",
+      "Average RenovaScore",
       `${average}<small> / 100</small>`,
       "shield",
       "Rule-based",
@@ -380,12 +405,14 @@ function metrics() {
   return `<div class="metrics">${items.map(([l, v, i, c, t, points]) => `<section class="panel metric"><div class="metric-label">${l}${icon(i, 15)}</div><div class="metric-value mono">${v}</div><div class="metric-bottom"><span class="metric-change">${icon("trend", 11)}${c}</span>${t}</div><div class="metric-spark"><svg viewBox="0 0 75 35" aria-hidden="true"><path d="M0 ${points[0]} ${points.map((y, i) => `L${i * 10 + 3} ${y}`).join(" ")}" fill="none" stroke="#9bb880" stroke-width="1.5"/></svg></div></section>`).join("")}</div>`;
 }
 function dashboard() {
-  return `${heading("A clearer view. A smarter decision.", "Your renovation lending workspace, all in one place.", button("Export report", "export", "download") + button("New application", "new", "plus", true))}
-<div class="summary-row"><div class="statusbar"><i class="dot"></i>Workspace overview<span style="color:#cbd1c2;margin:0 2px">/</span><span style="color:#949e8b">IDR · Sample portfolio</span></div><span>Updated from your workspace</span></div>${metrics()}
-<div class="dashboard-grid"><section class="panel performance"><div class="panel-header"><div><h2>Capital in motion</h2><p class="sub">Illustrative disbursement & repayment trends</p></div><div class="segmented" aria-label="Chart period">${["3m", "6m", "1y"].map((t) => `<button class="${state.range === t ? "active" : ""}" data-range="${t}" aria-pressed="${state.range === t}">${t.toUpperCase()}</button>`).join("")}</div></div><div class="chart-key"><span><i></i>Disbursed</span><span><i></i>Repaid</span><span style="margin-left:auto">In IDR billion</span></div>${chart()}</section>
-${health()}
-<section class="panel queue-panel"><div class="panel-header"><div><h2>Application pipeline</h2><p class="sub">Good projects start with informed decisions.</p></div><button class="text-btn" data-page="applications">View all ${icon("arrow", 13)}</button></div>${filters()}${applicationTable(true)}</section>
-${attention()}${activity()}</div>`;
+  const persona = renovaAudiences[state.audience];
+  return `${heading(persona.headline, persona.description, button("Export report", "export", "download") + button("New application", "new", "plus", true))}
+ ${intelligenceHero()}${state.audience === "investor" ? opportunityComparison() : state.audience === "institution" ? institutionSummary() : ""}
+ <div class="summary-row"><div class="statusbar"><i class="dot"></i>Portfolio at a glance<span style="color:#cbd1c2;margin:0 2px">/</span><span style="color:#7c8975">IDR · Indonesia</span></div><span>Live calculations · Sample inputs</span></div>${metrics()}
+ <div class="dashboard-grid"><section class="panel performance"><div class="panel-header"><div><h2>Capital in motion</h2><p class="sub">Illustrative disbursement & repayment trends</p></div><div class="segmented" aria-label="Chart period">${["3m", "6m", "1y"].map((t) => `<button class="${state.range === t ? "active" : ""}" data-range="${t}" aria-pressed="${state.range === t}">${t.toUpperCase()}</button>`).join("")}</div></div><div class="chart-key"><span><i></i>Disbursed</span><span><i></i>Repaid</span><span style="margin-left:auto">In IDR billion</span></div>${chart()}</section>
+ ${health()}
+ <section class="panel queue-panel"><div class="panel-header"><div><h2>Renovation pipeline</h2><p class="sub">Every property. Every decision. One clear view.</p></div><button class="text-btn" data-page="applications">View all ${icon("arrow", 13)}</button></div>${filters()}${applicationTable(true)}</section>
+ ${attention()}${activity()}</div>`;
 }
 function chart() {
   const sets = {
@@ -426,17 +453,29 @@ function chart() {
     )}${set.labels.map((v, i) => `<text text-anchor="middle" x="${45 + (i * 490) / (set.labels.length - 1)}" y="185">${v}</text>`).join("")}</svg><div class="chart-tooltip">${set.labels.at(-1)} · Illustrative<br>Disbursed <strong>Rp ${set.d.at(-1)}B</strong><br>Repaid <strong>Rp ${set.r.at(-1)}B</strong></div></div>`;
 }
 function health() {
-  const healthy = data.apps.filter((a) => a.score >= 80).length;
-  const watch = data.apps.filter((a) => a.score >= 60 && a.score < 80).length;
-  const high = data.apps.length - healthy - watch;
-  const percent = Math.round((healthy / data.apps.length) * 100);
+  const creditOK = (a) => {
+    const r = assess(a);
+    return (
+      r.ltv <= data.policy.maxLtv &&
+      r.dsr <= data.policy.maxDsr &&
+      r.score >= data.policy.minScore
+    );
+  };
+  const ready = data.apps.filter(
+    (a) => creditOK(a) && approvalReasons(a).length === 0,
+  ).length;
+  const evidence = data.apps.filter(
+    (a) => creditOK(a) && approvalReasons(a).length > 0,
+  ).length;
+  const flagged = data.apps.length - ready - evidence;
+  const percent = Math.round((ready / data.apps.length) * 100);
   const items = [
-    ["Healthy", healthy, "#64814f"],
-    ["Watchlist", watch, "#d1bb7e"],
-    ["High risk", high, "#d6dace"],
+    ["Within policy", ready, "#64814f"],
+    ["Evidence gaps", evidence, "#d1bb7e"],
+    ["Policy flags", flagged, "#d6dace"],
   ];
   let offset = 0;
-  return `<section class="panel health-panel"><div class="panel-header"><div><h2>Portfolio health</h2><p class="sub">Risk distribution across applications</p></div>${icon("info", 14)}</div><div class="health-body"><div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${percent}% of applications have a credit score of 80 or higher"><circle cx="60" cy="60" r="49" stroke="#f1f3ec" stroke-width="11" fill="none"/>${items
+  return `<section class="panel health-panel"><div class="panel-header"><div><h2>Decision readiness</h2><p class="sub">Current credit policy & evidence gates</p></div>${icon("info", 14)}</div><div class="health-body"><div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${percent}% of applications pass current demo credit and evidence gates"><circle cx="60" cy="60" r="49" stroke="#f1f3ec" stroke-width="11" fill="none"/>${items
     .map(([, n, c]) => {
       const len = (n / data.apps.length) * 307.88;
       const svg = `<circle cx="60" cy="60" r="49" stroke="${c}" stroke-width="11" fill="none" stroke-dasharray="${Math.max(0, len - 4)} ${307.88 - Math.max(0, len - 4)}" stroke-dashoffset="${-offset}"/>`;
@@ -445,7 +484,7 @@ function health() {
     })
     .join(
       "",
-    )}</svg><div class="donut-center"><strong>${percent}<span style="font-size:16px">%</span></strong><small>Healthy applications</small></div></div><div class="legend">${items.map(([n, v, c]) => `<div class="legend-row"><i style="background:${c}"></i>${n}<strong>${v}</strong></div>`).join("")}</div></div><div class="health-note">${icon("shield", 13)}Healthy ≥80 · Watchlist 60–79 · High risk &lt;60</div></section>`;
+    )}</svg><div class="donut-center"><strong>${percent}<span style="font-size:16px">%</span></strong><small>Within demo policy</small></div></div><div class="legend">${items.map(([n, v, c]) => `<div class="legend-row"><i style="background:${c}"></i>${n}<strong>${v}</strong></div>`).join("")}</div></div><div class="health-note">${icon("shield", 13)}Current gates only · Independent verification required</div></section>`;
 }
 function filters() {
   return `<div class="table-toolbar"><div class="flex" style="gap:3px">${["All applications", "In review", "Approved"].map((s) => `<button class="filter ${state.filter === s ? "active" : ""}" data-filter="${s}" aria-pressed="${state.filter === s}">${s}<span class="count">${s === "All applications" ? data.apps.length : data.apps.filter((a) => a.status === s).length}</span></button>`).join("")}</div></div>`;
@@ -512,7 +551,7 @@ function activity() {
     },
     {
       message: "Credit assessment completed",
-      project: "BSD Residence · Score 88/100",
+      project: `BSD Residence · Score ${assess(data.apps.find((a) => a.id === defaults[1].id) || data.apps[0]).score}/100`,
       time: null,
     },
     {
@@ -540,11 +579,12 @@ function portfolio() {
   return `${heading("Capital with a purpose.", "A closer look at your approved renovation projects.", button("Export portfolio", "export-portfolio", "download"))}${metrics()}<div class="between"><h2>Active projects <span class="muted" style="font-size:12px;font-weight:400">${active.length}</span></h2><span class="sub">Approved applications only</span></div><div class="project-grid">${active.map((a) => `<section class="panel project-card"><div class="project-card-top"><svg class="building-art" viewBox="0 0 120 80" fill="none" stroke="#819769" stroke-width="1.4" aria-hidden="true"><path d="M10 80V27L45 5l35 22v53 M80 80V40l30 10v30 M17 32h56 M24 42h15v14H24z M51 42h15v14H51z M39 80V65h15v15 M88 55h12v13H88z"/><path d="M0 79h120"/></svg><span style="position:absolute;top:10px;right:10px">${badge(a.status)}</span></div><h3>${escapeHTML(a.name)}</h3><p class="sub">${escapeHTML(a.location)}</p><div class="between"><span class="amount mono">${money(a.amount)}</span>${scoreHTML(a.score)}</div><div class="between" style="margin-bottom:0"><span class="sub">Renovation progress</span><span style="font-size:10px">${a.progress}%</span></div><div class="progress-track"><i style="width:${a.progress}%"></i></div><div class="between" style="margin:0"><span class="sub">Loan-to-value</span><span style="font-size:11px">${Math.round((a.amount / a.value) * 100)}%</span></div><button class="btn" data-review="${a.id}">View project ${icon("arrow", 13)}</button></section>`).join("") || '<section class="panel empty"><strong>No approved projects yet</strong>Approve an application to add it to your portfolio.</section>'}</div>`;
 }
 // Model is deliberately transparent and deterministic; never a production recommendation.
-function assess(values) {
+function assess(values, policy = data.policy) {
   const { amount, value, income, debt, months, contractor } = values;
   const ltv = (amount / value) * 100;
-  const r = 0.12 / 12;
-  const payment = (amount * r) / (1 - Math.pow(1 + r, -months));
+  const r = policy.interest / 1200;
+  const payment =
+    r === 0 ? amount / months : (amount * r) / (1 - Math.pow(1 + r, -months));
   const dsr = ((debt + payment) / income) * 100;
   const collateral = Math.max(0, Math.min(100, (100 - ltv) * 2));
   const affordability = Math.max(0, Math.min(100, (70 - dsr) * 2));
@@ -552,14 +592,32 @@ function assess(values) {
     collateral * 0.4 + affordability * 0.4 + contractor * 0.2,
   );
   const decision =
-    ltv > 80 || dsr > 60
+    ltv > policy.maxLtv || dsr > policy.maxDsr
       ? "Outside policy"
-      : score >= 75
+      : score >= policy.minScore
         ? "Eligible for review"
         : score >= 55
           ? "Manual review required"
           : "High risk";
-  return { ltv, dsr, payment, collateral, affordability, score, decision };
+  const availablePayment = Math.max(0, (income * policy.maxDsr) / 100 - debt);
+  const affordableLoan =
+    r === 0
+      ? availablePayment * months
+      : (availablePayment * (1 - Math.pow(1 + r, -months))) / r;
+  const loanCeiling = Math.max(
+    0,
+    Math.min((value * policy.maxLtv) / 100, affordableLoan),
+  );
+  return {
+    ltv,
+    dsr,
+    payment,
+    collateral,
+    affordability,
+    score,
+    decision,
+    loanCeiling,
+  };
 }
 function field(label, name, value, type = "number", attrs = "") {
   return `<label class="field">${label}<input name="${name}" type="${type}" value="${escapeHTML(value)}" required ${attrs}></label>`;
@@ -568,7 +626,7 @@ function scoringFields() {
   return `${field("Requested amount (IDR million)", "amount", 850, "number", 'min="1" max="1000000" step="1"')}${field("Post-renovation value (IDR million)", "value", 1800, "number", 'min="1" max="10000000" step="1"')}${field("Monthly income (IDR million)", "income", 50, "number", 'min="0.1" max="1000000" step="0.1"')}${field("Existing monthly debt (IDR million)", "debt", 5, "number", 'min="0" max="1000000" step="0.1"')}<label class="field">Loan tenor<select name="months"><option value="36">36 months</option><option value="60" selected>60 months</option><option value="84">84 months</option><option value="120">120 months</option></select></label>${field("Contractor verification score", "contractor", 90, "number", 'min="0" max="100" step="1"')}`;
 }
 function engine() {
-  return `${heading("Clarity behind every credit score.", "Model renovation financing scenarios with transparent, rules-based assessment.")}<div class="risk-layout"><form class="panel form-panel" id="risk-form"><h2>Credit simulator</h2><p class="sub">Explore affordability, collateral, and contractor quality.</p><div class="form-grid">${scoringFields()}</div><p class="form-help">Amounts in IDR millions. Illustrative fixed interest of 12% p.a., amortized monthly. Excludes fees and insurance.</p><button class="btn primary" type="submit">${icon("shield", 15)}Run assessment</button></form><div id="risk-result">${riskResult(assess({ amount: 850, value: 1800, income: 50, debt: 5, months: 60, contractor: 90 }))}</div></div><section class="panel form-panel" style="margin-top:22px"><h2>How this prototype scores</h2><p class="sub" style="margin-bottom:0">Collateral contributes 40%, affordability 40%, and contractor verification 20%. Loan-to-value above 80% or total debt service above 60% is outside demo policy. An assessment never automatically approves or funds an application. No credit bureau, bank, or property valuation service is connected.</p></section>`;
+  return `${heading("Clarity behind every credit score.", "Model renovation financing scenarios with transparent, rules-based assessment.")}<div class="risk-layout"><form class="panel form-panel" id="risk-form"><h2>Credit simulator</h2><p class="sub">Explore affordability, collateral, and contractor quality.</p><div class="form-grid">${scoringFields()}</div><p class="form-help">Amounts in IDR millions. Current demo policy: ${data.policy.interest}% p.a., amortized monthly. Excludes fees and insurance.</p><button class="btn primary" type="submit">${icon("shield", 15)}Run assessment</button></form><div id="risk-result">${riskResult(assess({ amount: 850, value: 1800, income: 50, debt: 5, months: 60, contractor: 90 }))}</div></div><section class="panel form-panel" style="margin-top:22px"><h2>How this prototype scores</h2><p class="sub" style="margin-bottom:0">Collateral contributes 40%, affordability 40%, and contractor verification 20%. Current policy caps loan-to-value at ${data.policy.maxLtv}% and debt service at ${data.policy.maxDsr}%. Credit score must reach ${data.policy.minScore} for approval; evidence must also be complete. An assessment never automatically approves or funds an application. No credit bureau, bank, or property valuation service is connected.</p></section>`;
 }
 function riskResult(r) {
   return `<section class="panel result" aria-live="polite"><div class="between"><h2>Assessment result</h2><span class="badge ${r.score >= 75 && r.decision !== "Outside policy" ? "approved" : "review"}">${r.decision}</span></div><div class="result-score">${r.score}<small> / 100</small></div><p class="sub">Illustrative credit score</p>${[
@@ -620,11 +678,50 @@ function reports() {
   return `${heading("Turn your pipeline into perspective.", "Export your current workspace and review the decision trail.", button("Download CSV", "export", "download", true))}${metrics()}<div class="risk-layout"><section class="panel form-panel"><h2>Workspace report</h2><p class="sub">Your exported CSV includes every current application, credit score, status, loan-to-value, and reviewer note. Amounts are in IDR millions.</p><div class="settings-row"><div><strong>Application register</strong><p class="sub">${data.apps.length} applications · All statuses</p></div><button class="btn small" data-action="export">${icon("download", 13)}Export</button></div><div class="settings-row"><div><strong>Approved portfolio</strong><p class="sub">${data.apps.filter((a) => a.status === "Approved").length} committed projects</p></div><button class="btn small" data-action="export-portfolio">${icon("download", 13)}Export</button></div></section><section class="panel"><div class="panel-header"><h2>Decision trail</h2></div><div class="activity-list" style="display:block">${data.activity.length ? data.activity.map((a) => `<div class="activity"><span class="activity-icon">${icon("check", 12)}</span><div><strong>${escapeHTML(a.message)}</strong><p>${escapeHTML(a.project)} · ${new Date(a.time).toLocaleString("en-GB")}</p></div></div>`).join("") : '<div class="empty"><strong>No new activity yet</strong>Create an application or record a review to build your local decision trail.</div>'}</div></section></div>`;
 }
 function settings() {
-  return `${heading("Make this workspace yours.", "Manage your demo profile and local prototype data.")}<form id="settings-form" class="panel settings-section"><h2>Profile & preferences</h2><p class="sub">Saved in this browser. No external account is created.</p><div class="form-grid">${field("Full name", "name", data.settings.name, "text", 'maxlength="70"')}${field("Email address", "email", data.settings.email, "email", 'maxlength="120"')}</div><div class="settings-row"><div><strong>Workspace notifications</strong><p class="sub">Show the update indicator in the navigation bar.</p></div><button type="button" role="switch" aria-label="Workspace notifications" aria-checked="${data.settings.notifications}" class="switch" data-action="toggle-notifications"></button></div><button class="btn primary" type="submit">Save profile</button></form><section class="panel settings-section"><h2>Explore both sides</h2><div class="settings-row"><div><strong>${state.role === "bank" ? "Borrower experience" : "Credit operations"}</strong><p class="sub">Switch between the credit workspace and project tracking.</p></div><button class="btn" data-action="switch-role">Switch view ${icon("arrow", 13)}</button></div></section><section class="panel settings-section"><h2>Prototype data</h2><p class="sub" style="margin-top:10px">Data is saved in browser local storage, separately for each browser and origin. Use fictional information only. Reset removes your local applications, decisions, profile, and milestone records.</p><button class="btn danger" style="margin-top:20px" data-action="reset">${icon("refresh", 13)}Reset demo workspace</button></section>`;
+  return `${heading("Make this workspace yours.", "Manage your demo profile and local prototype data.")}<form id="settings-form" class="panel settings-section"><h2>Profile & preferences</h2><p class="sub">Saved in this browser. No external account is created.</p><div class="form-grid">${field("Full name", "name", data.settings.name, "text", 'maxlength="70"')}${field("Email address", "email", data.settings.email, "email", 'maxlength="120"')}</div><div class="settings-row"><div><strong>Workspace notifications</strong><p class="sub">Show the update indicator in the navigation bar.</p></div><button type="button" role="switch" aria-label="Workspace notifications" aria-checked="${data.settings.notifications}" class="switch" data-action="toggle-notifications"></button></div><button class="btn primary" type="submit">Save profile</button></form><section class="panel settings-section"><h2>Stakeholder perspectives</h2><div class="settings-row"><div><strong>${state.role === "bank" ? "Borrower experience" : "Credit operations"}</strong><p class="sub">Switch between the credit workspace and project tracking.</p></div><button class="btn" data-action="switch-role">Switch view ${icon("arrow", 13)}</button></div></section><section class="panel settings-section"><h2>Lender configuration</h2><p class="sub" style="margin-top:10px">Set credit gates and inspect the integration readiness map.</p><button class="btn" style="margin-top:15px" data-page="policy">${icon("shield", 13)}Lending policy & integrations</button></section><section class="panel settings-section"><h2>Prototype data</h2><p class="sub" style="margin-top:10px">Data is saved in browser local storage, separately for each browser and origin. Use fictional information only. Reset removes your local applications, decisions, profile, and milestone records.</p><button class="btn danger" style="margin-top:20px" data-action="reset">${icon("refresh", 13)}Reset demo workspace</button></section>`;
 }
 function borrower() {
-  const a = selected();
-  return `${heading("Your next chapter, taking shape.", "Stay close to your renovation, from funding to final handover.", button("View milestones", "milestones", "arrow", true))}<div class="notice">Borrower preview · You are viewing a sample approved project. This is not a signed-in borrower account.</div>${a ? `<section class="panel form-panel"><div class="between"><div><h2>${escapeHTML(a.name)}</h2><p class="sub">${escapeHTML(a.location)} · ${escapeHTML(a.borrower)}</p></div>${badge(a.status)}</div><div class="detail-grid"><div><dt>Approved financing</dt><dd>${money(a.amount)}</dd></div><div><dt>Renovation progress</dt><dd>${a.progress}%</dd></div><div><dt>Loan tenor</dt><dd>${a.months} months</dd></div></div><div class="progress-track"><i style="width:${a.progress}%"></i></div><button class="btn primary" style="margin-top:25px" data-page="milestones">Track funding milestones ${icon("arrow", 14)}</button></section>` : '<div class="panel empty"><strong>No approved project yet</strong>Switch to credit operations and approve an application.</div>'}`;
+  const a = intelligenceProject(),
+    r = propertyAnalysis(a);
+  return `${heading("Your next chapter, taking shape.", "A clearer renovation plan, a realistic budget, and a path to financing.", button("Plan a renovation", "new", "plus", true))}
+ <div class="notice">Homeowner planning perspective · Sample projects in a shared demo workspace. This is not an authenticated borrower account.</div>${intelligenceHero()}
+ <div class="decision-metrics">${[
+   [
+     "Renovation + reserve",
+     money(a.property.renovation + r.costReserve),
+     "RAB plus contingency",
+   ],
+   [
+     "Modeled loan capacity",
+     money(r.loanCeiling),
+     "From income and collateral inputs",
+   ],
+   [
+     "Monthly installment",
+     money(r.payment),
+     `${data.policy.interest}% interest · ${a.months} months`,
+   ],
+   [
+     "Evidence readiness",
+     `${r.covered} / 7`,
+     "Demo checklist, not source verification",
+   ],
+ ]
+   .map(
+     ([l, v, d]) =>
+       `<section class="panel decision-metric"><span>${l}</span><strong>${v}</strong><small>${d}</small></section>`,
+   )
+   .join("")}</div>
+ <div class="risk-layout"><section class="panel form-panel"><div class="between"><div><h2>Your property plan</h2><p class="sub">${escapeHTML(a.name)} · ${escapeHTML(a.location)}</p></div>${propertySelect()}</div><div class="property-opportunity"><div><strong>01 · Know your renovation budget</strong><p>Model your RAB, contingency, project costs, and scope.</p></div><button class="icon-button" data-page="intelligence" aria-label="Plan renovation budget">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>02 · Understand what you can finance</strong><p>Test your income, existing debt, and monthly installment.</p></div><button class="icon-button" data-page="engine" aria-label="Calculate affordability">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>03 · Prepare your Renovation Passport</strong><p>See the evidence a lender needs for a complete review.</p></div><button class="icon-button" data-page="passport" aria-label="Prepare renovation passport">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>04 · Track construction milestones</strong><p>Follow evidence checks on approved project funding.</p></div><button class="icon-button" data-page="milestones" aria-label="Track project milestones">${icon("arrow", 14)}</button></div></section><section class="panel form-panel"><h2>What to prepare</h2><p class="sub">Your planning checklist</p>${
+   renovaEvidence
+     .filter(([k]) => !a.property.evidence[k])
+     .map(
+       ([, l]) =>
+         `<div class="document-row">${icon("file", 14)}${l}<span class="badge pending">Required</span></div>`,
+     )
+     .join("") ||
+   '<div class="decision-callout">All demo checks are recorded. A lender still needs to independently verify the underlying source documents.</div>'
+ }<button class="btn" style="margin-top:20px" data-page="passport">Open my passport ${icon("arrow", 13)}</button></section></div>`;
 }
 function openModal(title, body, foot = "") {
   modalOpener = document.activeElement;
@@ -642,20 +739,28 @@ function closeModal() {
 function review(id) {
   const a = data.apps.find((x) => x.id === id);
   if (!a) return;
-  const r = assess(a);
-  const docs = a.status === "Pending docs";
+  const r = assess(a),
+    p = a.property,
+    reasons = approvalReasons(a),
+    lender = isLender();
   openModal(
     escapeHTML(a.name),
-    `<div class="between"><div><span class="eyebrow muted">${escapeHTML(a.id)}</span><p class="sub">${escapeHTML(a.borrower)} · ${escapeHTML(a.location)}</p></div>${badge(a.status)}</div><dl class="detail-grid"><div><dt>Requested amount</dt><dd>${money(a.amount)}</dd></div><div><dt>Credit score</dt><dd>${a.score} / 100</dd></div><div><dt>Loan-to-value</dt><dd>${r.ltv.toFixed(1)}%</dd></div><div><dt>Monthly payment</dt><dd>${money(r.payment)}</dd></div><div><dt>Debt service ratio</dt><dd>${r.dsr.toFixed(1)}%</dd></div><div><dt>Tenor</dt><dd>${a.months} months</dd></div></dl><h3>Document checklist</h3>${["Borrower identity", "Property deed (SHM)", "Renovation budget (RAB)", "Contractor agreement"].map((d, i) => `<div class="document-row">${icon("file", 14)}${d}<span class="badge ${docs && i === 3 ? "review" : "approved"}">${docs && i === 3 ? "Missing" : "Demo verified"}</span></div>`).join("")}<div class="decision-callout"><strong>Current policy simulation · ${r.decision}</strong><br>Calculated score ${r.score}/100 · Loan-to-value ${r.ltv.toFixed(1)}% · Debt service ${r.dsr.toFixed(1)}%. Existing sample scores may differ from the current simulator.</div><p class="form-help">Checklist statuses are sample data. Approval records a local demo decision and does not transfer funds.</p>${docs ? `<button class="btn small" data-docs="${a.id}">${icon("check", 13)}Mark demo documents complete</button>` : ""}${a.status === "In review" ? `<label class="field" style="margin-top:20px">Reviewer note (required for rejection)<textarea id="review-note" class="review-note" maxlength="1000" placeholder="Record the rationale for your decision…"></textarea></label><p id="review-error" class="error-message" role="alert"></p>` : a.note ? `<div class="notice"><strong>Reviewer note</strong><br>${escapeHTML(a.note)}</div>` : ""}`,
-    a.status === "In review"
-      ? `<button class="btn" data-action="close-modal">Cancel</button><button class="btn danger" data-decision="Rejected" data-id="${a.id}">Decline</button><button class="btn primary" data-decision="Approved" data-id="${a.id}">${icon("check", 14)}Approve application</button>`
+    `<div class="between"><div><span class="eyebrow muted">${escapeHTML(a.id)}</span><p class="sub">${escapeHTML(a.borrower)} · ${escapeHTML(a.location)}</p></div>${badge(a.status)}</div>
+ <dl class="detail-grid"><div><dt>Requested amount</dt><dd>${money(a.amount)}</dd></div><div><dt>Credit score · current policy</dt><dd>${r.score} / 100</dd></div><div><dt>Loan-to-value</dt><dd>${r.ltv.toFixed(1)}%</dd></div><div><dt>Monthly installment</dt><dd>${money(r.payment)}</dd></div><div><dt>Debt service ratio</dt><dd>${r.dsr.toFixed(1)}%</dd></div><div><dt>Policy-based capacity</dt><dd>${money(r.loanCeiling)}</dd></div></dl>
+ <h3>Evidence readiness</h3>${renovaEvidence.map(([k, l]) => `<div class="document-row">${icon("file", 14)}${l}<span class="badge ${p.evidence[k] ? "approved" : "pending"}">${p.evidence[k] ? "Demo checked" : "Required"}</span></div>`).join("")}
+ <button class="btn small" style="margin-top:15px" data-docs="${a.id}">${icon("file", 13)}${a.status === "Pending docs" ? "Mark demo documents complete" : "Review demo documents"}</button>
+ <div class="decision-callout"><strong>Credit gate · ${r.decision}</strong><br>Policy v${data.policy.version}: LTV ≤ ${data.policy.maxLtv}%, debt service ≤ ${data.policy.maxDsr}%, credit score ≥ ${data.policy.minScore}. ${reasons.length ? `<ul class="gate-list">${reasons.map((v) => `<li>${escapeHTML(v)}</li>`).join("")}</ul>` : "All demo approval gates passed. A human lender decision is still required."}</div>
+ <p class="form-help">Evidence checks are local simulations. No bureau, registry, appraisal, or bank verification is connected. ${!lender ? "You are in a planning perspective; choose Bank or Financial institution for credit decisions." : ""}</p>
+ ${a.status === "In review" && lender ? `<label class="field" style="margin-top:20px">Reviewer note (required for rejection)<textarea id="review-note" class="review-note" maxlength="1000" placeholder="Record the rationale for your decision…"></textarea></label><p id="review-error" class="error-message" role="alert"></p>` : a.note ? `<div class="notice"><strong>Reviewer note</strong><br>${escapeHTML(a.note)}</div>` : ""}`,
+    a.status === "In review" && lender
+      ? `<button class="btn" data-action="close-modal">Cancel</button><button class="btn danger" data-decision="Rejected" data-id="${a.id}">Decline</button><button class="btn primary" data-decision="Approved" data-id="${a.id}" ${reasons.length ? "disabled" : ""}>${icon("check", 14)}Approve application</button>`
       : button("Close", "close-modal"),
   );
 }
 function newApplication() {
   openModal(
     "A new possibility.",
-    `<p class="sub" style="margin-bottom:20px">Create a renovation application and generate an initial demo assessment.</p><div class="notice">Use fictional information. Data stays in this browser.</div><form id="new-form"><div class="form-grid">${field("Project name", "project", "", "text", 'maxlength="90" placeholder="e.g. Kebayoran Garden House"')}${field("Borrower name", "borrower", "", "text", 'maxlength="90" placeholder="e.g. Sarah Wijaya"')}<label class="field full">Location<input name="location" required maxlength="100" placeholder="District, city"></label>${scoringFields()}</div><p class="form-help">12% illustrative annual interest. The assessment combines collateral (40%), affordability (40%), and contractor verification (20%). This does not approve credit.</p><p class="error-message" id="new-error" role="alert"></p><button type="submit" class="btn primary" style="margin-top:15px">${icon("plus", 14)}Create & assess application</button></form>`,
+    `<p class="sub" style="margin-bottom:20px">Create a renovation application and generate an initial demo assessment.</p><div class="notice">Use fictional information. Data stays in this browser.</div><form id="new-form"><div class="form-grid">${field("Project name", "project", "", "text", 'maxlength="90" placeholder="e.g. Kebayoran Garden House"')}${field("Borrower name", "borrower", "", "text", 'maxlength="90" placeholder="e.g. Sarah Wijaya"')}<label class="field full">Location<input name="location" required maxlength="100" placeholder="District, city"></label>${scoringFields()}</div><p class="form-help">${data.policy.interest}% illustrative annual interest. The assessment combines collateral (40%), affordability (40%), and contractor verification (20%). This does not approve credit.</p><p class="error-message" id="new-error" role="alert"></p><button type="submit" class="btn primary" style="margin-top:15px">${icon("plus", 14)}Create & assess application</button></form>`,
   );
 }
 function numbers(form) {
@@ -709,7 +814,7 @@ function exportCSV(onlyApproved = false) {
   );
   const link = document.createElement("a");
   link.href = url;
-  link.download = `secha-${onlyApproved ? "portfolio" : "applications"}-${today().slice(0, 10)}.csv`;
+  link.download = `renovacredit-${onlyApproved ? "portfolio" : "applications"}-${today().slice(0, 10)}.csv`;
   document.body.append(link);
   link.click();
   link.remove();
@@ -732,6 +837,8 @@ function evidence(project, stage) {
 }
 const actions = {
   home: () => navigate(state.role === "bank" ? "dashboard" : "borrower"),
+  intelligence: () => navigate("intelligence"),
+  "export-passport": () => exportPassport(),
   menu: () => {
     state.menu = !state.menu;
     render();
@@ -755,7 +862,7 @@ const actions = {
   milestones: () => navigate("milestones"),
   guide: () =>
     openModal(
-      "Welcome to SECHA",
+      "Welcome to RenovaCredit",
       `<div class="stack" style="gap:20px"><p class="sub">A working renovation lending prototype, designed for exploring a clearer credit workflow.</p><div><h3>01 · Originate</h3><p class="sub">Create an application with fictional borrower and project information.</p></div><div><h3>02 · Assess & decide</h3><p class="sub">Explore the risk simulator, review an application, and record a decision with a reviewer note.</p></div><div><h3>03 · Track progress</h3><p class="sub">Approved applications appear in the portfolio. Verify sequential milestones in Disbursements.</p></div><div><h3>04 · Take it with you</h3><p class="sub">Export the register as CSV. Your workspace saves locally, separately on each browser.</p></div></div>`,
       button("Got it", "close-modal", "check", true),
     ),
@@ -767,8 +874,7 @@ const actions = {
       .setAttribute("aria-checked", String(data.settings.notifications));
   },
   "switch-role": () => {
-    state.role = state.role === "bank" ? "borrower" : "bank";
-    navigate(state.role === "bank" ? "dashboard" : "borrower");
+    setAudience(state.role === "bank" ? "homeowner" : "bank");
   },
   reset: () =>
     openModal(
@@ -786,10 +892,16 @@ const actions = {
         notifications: true,
       },
       milestones: [],
+      policy: { ...renovaDefaultPolicy },
     };
+    data.apps.forEach((a, i) => {
+      a.property = propertyDefaults(a, i, true);
+      a.score = assess(a).score;
+    });
     save();
     closeModal();
     state.role = "bank";
+    state.audience = "bank";
     navigate("dashboard");
     toast("Sample workspace restored.");
   },
@@ -815,6 +927,14 @@ document.addEventListener("click", (e) => {
   } else if (d.decision) {
     const a = data.apps.find((x) => x.id === d.id);
     if (!a || a.status !== "In review") return;
+    if (!isLender()) {
+      toast("Choose a lender workspace to record a credit decision.");
+      return;
+    }
+    if (d.decision === "Approved" && approvalReasons(a).length) {
+      toast("Resolve the policy and evidence gates before approval.");
+      return;
+    }
     const note = document.querySelector("#review-note").value.trim();
     if (d.decision === "Rejected" && !note) {
       document.querySelector("#review-error").textContent =
@@ -825,6 +945,8 @@ document.addEventListener("click", (e) => {
     a.status = d.decision;
     a.note = note;
     a.decidedAt = today();
+    a.decisionPolicy = { ...data.policy };
+    a.decisionAssessment = assess(a);
     record(
       `Application ${d.decision === "Approved" ? "approved" : "declined"}`,
       a.name,
@@ -833,13 +955,7 @@ document.addEventListener("click", (e) => {
     render();
     toast(`${a.name} ${d.decision.toLowerCase()}.`);
   } else if (d.docs) {
-    const a = data.apps.find((x) => x.id === d.docs);
-    a.status = "In review";
-    record("Demo document checklist completed", a.name);
-    closeModal();
-    render();
-    review(a.id);
-    toast("Documents marked complete. Application ready for review.");
+    documentReview(d.docs);
   } else if (d.milestone) {
     evidence(d.project, Number(d.milestone));
   }
@@ -867,7 +983,7 @@ document.addEventListener("submit", (e) => {
     const values = numbers(form);
     const r = assess(values);
     const a = {
-      id: `SC-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
+      id: `RC-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
       ...text,
       ...values,
       score: r.score,
@@ -875,6 +991,8 @@ document.addEventListener("submit", (e) => {
       progress: 0,
       created: today().slice(0, 10),
     };
+    a.property = propertyDefaults(a, 0, false);
+    state.intelligenceProject = a.id;
     data.apps.unshift(a);
     record("New application received", a.name);
     closeModal();
