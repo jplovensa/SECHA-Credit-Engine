@@ -3,7 +3,7 @@
 const RC_STORE = "renovacredit-workflow-v1";
 const RC_ROLES = {
   reviewer: { name: "Dewi Anggraini", initials: "DA", label: "Case reviewer" },
-  owner: { name: "Homeowner preview", initials: "HP", label: "Homeowner" },
+  owner: { name: "Nadia Pratama", initials: "NP", label: "Homeowner" },
   lender: { name: "Arif Rahman", initials: "AR", label: "Lender reviewer" },
 };
 const RC_LINES = [

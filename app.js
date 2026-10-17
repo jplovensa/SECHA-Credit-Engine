@@ -84,8 +84,53 @@ const pages = {
   settings: "Workspace settings",
   case: "Case workspace",
 };
+// Demo audience scoping only. Production authorization must run on the server.
+const OWNER_CASE_ID = "RC-026";
+function visibleCases() {
+  if (ui.role === "owner") return store.cases.filter(c => c.id === OWNER_CASE_ID);
+  if (ui.role === "reviewer") return store.cases.filter(c => c.assignee === RC_ROLES.reviewer.name);
+  return store.cases;
+}
 function activeCase() {
-  return store.cases.find((c) => c.id === ui.caseId) || store.cases[0];
+  return visibleCases().find(c => c.id === ui.caseId) || visibleCases()[0];
+}
+function pageLabel(id) {
+  const labels = ui.role === "owner"
+    ? { overview: "My home", cases: "My renovation", evidence: "My documents", activity: "My updates", claims: "My payments" }
+    : ui.role === "lender"
+      ? { overview: "Lending overview", cases: "Financing queue", claims: "Authorizations & payments", evidence: "Evidence conditions", activity: "Decision activity" }
+      : { overview: "Review desk", cases: "Assigned cases" };
+  return labels[id] || pages[id];
+}
+function reviewTask(c) {
+  const r = rcReadiness(c), t = rcClaimTotals(c);
+  if (t?.stale && c.claim.status !== "Reconciled") return {title:"Resolve stale claim baseline", tab:"scope", type:"Baseline exception"};
+  if (c.claim?.status === "Submitted") return {title:"Certify the milestone claim", tab:"changes", type:"Certification"};
+  if (c.claim?.status === "Paid") return {title:"Reconcile payment records", tab:"changes", type:"Reconciliation"};
+  if (c.claim?.status === "Correction requested") return {title:"Review the corrected claim", tab:"changes", type:"Claim correction"};
+  if (c.changes.some(x => x.ownerAck && x.status !== "Accepted")) return {title:"Review the acknowledged scope change",tab:"changes",type:"Change review"};
+  if (r.lineCount || c.unknownCosts.length || !r.accepted) return {title:r.lineCount ? `Review ${r.lineCount} scope line${r.lineCount === 1 ? "" : "s"}` : c.unknownCosts.length ? "Resolve unpriced costs" : "Accept the reviewed budget",tab:"scope",type:"Budget review"};
+  if (r.docs.length) return {title:`Resolve ${r.docs.length} evidence check${r.docs.length === 1 ? "" : "s"}`,tab:"evidence",type:"Evidence review"};
+  return null;
+}
+function packetBlockers(c) {
+  const r = rcReadiness(c), reasons = [];
+  if (!r.accepted) reasons.push("budget review");
+  if (r.docs.length) reasons.push(`${r.docs.length} evidence checks`);
+  if (c.unknownCosts.length) reasons.push("unpriced costs");
+  if (r.changes.length) reasons.push("unresolved scope changes");
+  return reasons;
+}
+function lenderTask(c) {
+  const t = rcClaimTotals(c);
+  if (c.claim && !t.stale && c.claim.status === "Certified") return {title:"Authorize certified work",tab:"changes",type:"Authorization ready"};
+  if (c.claim && !t.stale && ["Authorized","Partially paid"].includes(c.claim.status)) return {title:"Record an external payment",tab:"changes",type:"Payment record"};
+  const blockers = packetBlockers(c);
+  if (!c.facilityActive && !blockers.length) return {title:c.packetStatus === "Accepted" ? "Record facility conditions" : "Review the financing packet",tab:"funding",type:"Decision ready"};
+  return null;
+}
+function taskRow(c, task, detail = "") {
+  return `<button class="action-item" data-case="${c.id}" data-tab="${task.tab}"><span class="case-icon">${ico(task.tab === "changes" ? "wallet" : task.tab === "evidence" ? "file" : "layers",19)}</span><span class="action-copy"><strong>${esc(task.title)}</strong><span>${esc(c.name)} · ${esc(c.id)}</span><small>${esc(detail || task.type)}</small></span>${badge(task.type)}<span class="row-arrow">${ico("arrow",15)}</span></button>`;
 }
 function save() {
   try {
@@ -125,6 +170,7 @@ function btn(text, action, icon = "", primary = false, more = "") {
   return `<button class="btn ${primary ? "primary" : ""}" data-action="${action}" ${more}>${icon ? ico(icon, 15) : ""}${text}</button>`;
 }
 function navigate(page) {
+  if (ui.role === "owner" && page === "cases") { ui.caseId = OWNER_CASE_ID; ui.tab = "scope"; page = "case"; }
   ui.page = page;
   ui.menu = false;
   ui.notifications = false;
@@ -133,6 +179,7 @@ function navigate(page) {
   window.scrollTo(0, 0);
 }
 function openCase(id, tab = "scope") {
+  if (!visibleCases().some(c => c.id === id)) { notify("This case is outside the selected demo perspective."); return; }
   ui.caseId = id;
   ui.tab = tab;
   navigate("case");
@@ -143,22 +190,22 @@ function heading(title, sub, actions = "") {
 }
 function render() {
   const role = RC_ROLES[ui.role],
-    pending = store.cases.reduce((s, c) => s + rcReadiness(c).docs.length, 0);
+    pending = visibleCases().reduce((s, c) => s + rcReadiness(c).docs.length, 0);
   document.querySelector("#app").innerHTML =
-    `${ui.menu ? '<button class="scrim" data-action="menu" aria-label="Close navigation"></button>' : ""}<aside class="sidebar ${ui.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-page="overview"><img class="brand-lockup" src="assets/renovacredit-logo.svg" alt="RenovaCredit by SECHA"></a><div class="workspace-picker"><span class="workspace-symbol">${ico("home", 17)}</span><div><strong>Renovation workspace</strong><small>Jabodetabek · Demo</small></div></div><div class="nav-label">WORKSPACE</div><nav>${[
+    `${ui.menu ? '<button class="scrim" data-action="menu" aria-label="Close navigation"></button>' : ""}<aside class="sidebar ${ui.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-page="overview"><img class="brand-lockup" src="assets/renovacredit-logo.svg" alt="RenovaCredit by SECHA"></a><div class="workspace-picker"><span class="workspace-symbol">${ico("home", 17)}</span><div><strong>${ui.role === "owner" ? "Nadia’s renovation" : ui.role === "lender" ? "Lending workspace" : "Review workspace"}</strong><small>Jabodetabek · Demo</small></div></div><div class="nav-label">WORKSPACE</div><nav>${[
       ["overview", "grid"],
       ["cases", "layers"],
-      ["claims", "wallet"],
+      ...(ui.role === "owner" ? [] : [["claims", "wallet"]]),
       ["evidence", "file"],
       ["activity", "history"],
     ]
       .map(
         ([id, i]) =>
-          `<button class="nav-item ${ui.page === id || (ui.page === "case" && id === "cases") ? "active" : ""}" data-page="${id}" ${ui.page === id ? 'aria-current="page"' : ""}>${ico(i)}${pages[id]}${id === "cases" ? `<span>${String(store.cases.length).padStart(2, "0")}</span>` : id === "evidence" ? `<span>${pending}</span>` : ""}</button>`,
+          `<button class="nav-item ${ui.page === id || (ui.page === "case" && id === "cases") ? "active" : ""}" data-page="${id}" ${ui.page === id ? 'aria-current="page"' : ""}>${ico(i)}${pageLabel(id)}${id === "cases" ? `<span>${String(visibleCases().length).padStart(2, "0")}</span>` : id === "evidence" ? `<span>${pending}</span>` : ""}</button>`,
       )
       .join(
         "",
-      )}</nav><div class="sidebar-bottom"><div class="pilot-card"><span class="pilot-icon">${ico("leaf", 19)}</span><strong>A clearer way to renovate.</strong><button data-action="walkthrough">Take a quick tour ${ico("arrow", 13)}</button></div><button class="nav-item" data-page="settings">${ico("settings")}Workspace settings</button><button class="profile" data-action="perspective"><span class="avatar">${role.initials}</span><div><strong>${role.name}</strong><small>${role.label} · demo</small></div>${ico("down", 12)}</button></div></aside><div class="shell"><header class="topbar"><button class="icon-btn mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${ui.menu}">${ico("menu", 18)}</button><div class="breadcrumb">Workspace ${ico("right", 12)}<strong>${ui.page === "case" ? esc(activeCase().id) : pages[ui.page]}</strong><span class="demo-tag">INTERACTIVE DEMO</span></div><div class="top-actions"><label class="global-search">${ico("search", 15)}<input id="global-search" placeholder="Find a project…" aria-label="Find a project"><kbd>⌘ K</kbd></label><button class="icon-btn" data-action="notifications" aria-label="Workspace updates" aria-expanded="${ui.notifications}">${ico("bell", 17)}<i class="notification-dot"></i></button><button class="avatar small" data-action="perspective" aria-label="Change demo perspective">${role.initials}</button></div>${ui.notifications ? `<section class="notification-menu panel"><h3>Needs attention</h3><p>${pending} evidence records need review or correction.</p><button class="text-link" data-page="evidence">Open evidence inbox ${ico("arrow", 14)}</button></section>` : ""}</header><main id="main-content" tabindex="-1"><div class="workspace-context"><span class="country"><i></i>INDONESIA <b>/</b> Existing-home renovation</span><button class="perspective" data-action="perspective">${ico("eye", 13)}${role.label} view ${ico("down", 11)}</button></div>${view()}<footer><span>${ico("shield", 12)}Fictional cases · No bank connection or money movement</span><span><i></i>${persistent ? "Saved in this browser" : "Session only"}</span></footer></main></div>`;
+      )}</nav><div class="sidebar-bottom"><div class="pilot-card"><span class="pilot-icon">${ico("leaf", 19)}</span><strong>A clearer way to renovate.</strong><button data-action="walkthrough">Take a quick tour ${ico("arrow", 13)}</button></div><button class="nav-item" data-page="settings">${ico("settings")}Workspace settings</button><button class="profile" data-action="perspective"><span class="avatar">${role.initials}</span><div><strong>${role.name}</strong><small>${role.label} · demo</small></div>${ico("down", 12)}</button></div></aside><div class="shell"><header class="topbar"><button class="icon-btn mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${ui.menu}">${ico("menu", 18)}</button><div class="breadcrumb">Workspace ${ico("right", 12)}<strong>${ui.page === "case" ? esc(activeCase().id) : pageLabel(ui.page)}</strong><span class="demo-tag">INTERACTIVE DEMO</span></div><div class="top-actions">${ui.role === "owner" ? `<button class="btn owner-shortcut" data-case="${OWNER_CASE_ID}" data-tab="funding">My funding plan ${ico("arrow",14)}</button>` : `<label class="global-search">${ico("search", 15)}<input id="global-search" placeholder="Find a project…" aria-label="Find a project"><kbd>⌘ K</kbd></label>`}<button class="icon-btn" data-action="notifications" aria-label="Workspace updates" aria-expanded="${ui.notifications}">${ico("bell", 17)}<i class="notification-dot"></i></button><button class="avatar small" data-action="perspective" aria-label="Change demo perspective">${role.initials}</button></div>${ui.notifications ? `<section class="notification-menu panel"><h3>Needs attention</h3><p>${pending} evidence records need review or correction.</p><button class="text-link" data-page="evidence">Open evidence inbox ${ico("arrow", 14)}</button></section>` : ""}</header><main id="main-content" tabindex="-1"><div class="workspace-context"><span class="country"><i></i>INDONESIA <b>/</b> Existing-home renovation</span><button class="perspective" data-action="perspective">${ico("eye", 13)}${role.label} view ${ico("down", 11)}</button></div>${view()}<footer><span>${ico("shield", 12)}Fictional cases · No bank connection or money movement</span><span><i></i>${persistent ? "Saved in this browser" : "Session only"}</span></footer></main></div>`;
 }
 function view() {
   if (ui.page === "case") return caseView();
@@ -173,44 +220,44 @@ function stat(label, value, icon, note, variant = "") {
   return `<section class="stat panel ${variant}"><div class="stat-label">${label}<span>${ico(icon, 16)}</span></div><strong>${value}</strong><p>${note}</p></section>`;
 }
 function overview() {
-  const attention = store.cases
-    .filter((c) => c.next && c.status !== "Closed")
-    .sort((a, b) => a.due.localeCompare(b.due));
-  const evidence = store.cases.filter(
-    (c) => rcReadiness(c).docs.length > 0,
-  ).length;
-  const gap = store.cases.reduce((s, c) => s + rcFinance(c).gap, 0);
-  const claims = store.cases.filter(
-    (c) => c.claim && c.claim.status !== "Reconciled",
-  ).length;
-  return `${heading(ui.role === "owner" ? "Your renovation, one step clearer." : "Your workspace, at a glance.", ui.role === "owner" ? "Know your budget, what to prepare, and what happens next." : "Keep renovation plans moving. Start with what needs you today.", btn("New case", "new-case", "plus", true))}<div class="summary-label"><span><i></i>WORKSPACE SNAPSHOT</span><small>Sample cases · amounts in IDR</small></div><div class="stats">${stat("Active cases", String(store.cases.length).padStart(2, "0"), "home", "Across one demo workspace")}${stat("Awaiting evidence", String(evidence).padStart(2, "0"), "file", "Cases with open evidence checks")}${stat("Uncommitted funding gap", compact(gap), "wallet", "Known costs less cash & usable facility")}${stat("Claims to review", String(claims).padStart(2, "0"), "layers", "Certification is separate from payment", "tinted")}</div><div class="overview-grid"><section class="panel action-panel"><div class="panel-header"><div><span class="eyebrow">YOUR ACTION QUEUE</span><h2>Needs attention <span class="count-pill">${attention.length}</span></h2></div><button class="text-link" data-page="cases">All cases ${ico("arrow", 14)}</button></div><div class="action-list">${attention
-    .slice(0, 4)
-    .map(
-      (c, i) =>
-        `<button class="action-item" data-case="${c.id}" data-tab="${c.claim ? "changes" : c.status === "Awaiting evidence" ? "evidence" : c.status === "Packet ready" ? "funding" : "scope"}"><span class="case-icon ${c.claim ? "sage" : ""}">${ico(c.claim ? "wallet" : i === 2 ? "file" : "home", 19)}</span><span class="action-copy"><strong>${esc(c.next)}</strong><span>${esc(c.name)} <i>·</i> ${esc(c.id)}</span><small><span class="person-dot">${c.assignee
-          .split(" ")
-          .map((x) => x[0])
-          .join(
-            "",
-          )}</span>${esc(c.assignee)} <i>·</i> Due ${new Date(c.due + "T00:00:00+07:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Jakarta" })}</small></span>${badge(c.claim ? "Claim review" : rcReadiness(c).docs.length ? "Evidence needed" : "Budget review")}<span class="row-arrow">${ico("arrow", 15)}</span></button>`,
-    )
-    .join(
-      "",
-    )}</div><div class="panel-foot">Sorted by due date · Select an action to continue the review.</div></section>${focusCard()}<section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">FROM PLAN TO PROGRESS</span><h2>Your renovation cases</h2></div><button class="text-link" data-page="cases">View all ${ico("arrow", 14)}</button></div>${caseTable(store.cases.slice(0, 4))}</section></div>`;
+  if (ui.role === "owner") return ownerOverview();
+  if (ui.role === "lender") return lenderOverview();
+  return reviewerOverview();
 }
-function focusCard() {
-  const c = store.cases.find((x) => x.id === "RC-026") || store.cases[0],
-    f = rcFinance(c),
-    r = rcReadiness(c);
-  return `<section class="focus-card"><div class="between"><span class="eyebrow">CONTINUE A CASE</span>${ico("home", 18)}</div><h2>${esc(c.name)}</h2><p>${esc(c.location)} · ${esc(c.owner)}</p><div class="focus-money"><span>Known project cost</span><strong>${compact(f.total)}</strong><small>Construction, contingency & known fees</small></div><div class="focus-split"><div><span>Owner cash</span><strong>${shortMoney(c.cash)}</strong></div><div><span>Funding gap</span><strong>${shortMoney(f.gap)}</strong></div></div><div class="focus-status"><span>${r.docs.length} evidence check${r.docs.length === 1 ? "" : "s"} to resolve</span><span>Budget v${c.version}</span></div><button class="btn" data-case="${c.id}" data-tab="funding">Review funding plan ${ico("arrow", 15)}</button><small class="focus-disclaimer">A funding gap is not a loan approval.</small></section>`;
+function reviewerOverview() {
+  const cases = visibleCases(), tasks = cases.map(c => ({c, task:reviewTask(c)})).filter(x => x.task).sort((a,b)=>a.c.due.localeCompare(b.c.due));
+  const lines = cases.reduce((n,c)=>n+rcReadiness(c).lineCount,0), docs = cases.reduce((n,c)=>n+rcReadiness(c).docs.length,0);
+  const claims = cases.filter(c=>c.claim && ["Submitted","Correction requested"].includes(c.claim.status)).length;
+  return `${heading("Your review desk.","Good decisions start with a clear scope and a traceable source.",btn("New case","new-case","plus",true))}<div class="audience-label">${ico("shield",14)} CASE REVIEWER <span>Assigned to ${esc(RC_ROLES.reviewer.name)}</span></div><div class="stats">${stat("Assigned cases",String(cases.length).padStart(2,"0"),"home","Your current demo assignments")}${stat("Scope lines to review",String(lines).padStart(2,"0"),"layers","Quantities, rates and source references")}${stat("Open evidence checks",String(docs).padStart(2,"0"),"file","Received does not mean accepted")}${stat("Claims to certify",String(claims).padStart(2,"0"),"wallet","Evidence-supported work only","tinted")}</div><div class="audience-grid"><section class="panel action-panel"><div class="panel-header"><div><span class="eyebrow">REVIEW & RESOLVE</span><h2>Your next reviews <span class="count-pill">${tasks.length}</span></h2></div><button class="text-link" data-page="cases">Assigned cases ${ico("arrow",14)}</button></div><div class="action-list">${tasks.slice(0,4).map(({c,task})=>taskRow(c,task,`Due ${new Date(c.due+"T00:00:00+07:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"Asia/Jakarta"})} · ${c.assignee}`)).join("") || '<div class="empty">No reviews are waiting for you.</div>'}</div><div class="panel-foot">Review tasks update with the current budget, evidence and claim states.</div></section><section class="panel role-guide"><span class="eyebrow">YOUR REVIEW BOUNDARY</span><h2>Make the evidence clear.</h2><p>Review the budget and supporting records. Certify only the work supported by the claim evidence.</p><div class="role-callout">${ico("file",22)}<div><strong>${docs} records need a decision</strong><span>Accept, request a correction, or record why a check does not apply.</span></div></div><button class="btn full" data-page="evidence">Open evidence inbox ${ico("arrow",14)}</button><p class="helper">Owner consent and lender authorization remain separate steps.</p></section><section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">YOUR ASSIGNMENTS</span><h2>Cases under review</h2></div></div>${caseTable(cases)}</section></div>`;
+}
+function ownerOverview() {
+  const c = visibleCases()[0], f = rcFinance(c), r = rcReadiness(c);
+  const changes = c.changes.filter(x=>!x.ownerAck && x.status!=="Accepted");
+  const stages = [
+    ["Agree the scope", r.accepted ? "Reviewed budget" : "Budget review in progress", r.accepted,"scope"],
+    ["Prepare the evidence", r.docs.length ? `${r.docs.length} checks outstanding` : "Evidence checks resolved",!r.docs.length,"evidence"],
+    ["Confirm the funding",c.facilityActive ? "Usable demo facility recorded" : !f.known ? "Unpriced costs to resolve" : f.gap ? "Funding gap to resolve" : "Cash plan recorded",!f.gap && f.known,"funding"],
+    ["Track work & payments",c.claim ? c.claim.status : "No milestone claim yet",c.claim?.status==="Reconciled","changes"]
+  ];
+  return `${heading("Your renovation, one step clearer.","See what your home needs, what it costs, and what needs your decision.")}<div class="audience-label">${ico("home",14)} HOMEOWNER <span>${esc(c.owner)} · One home, one plan</span></div><section class="owner-hero"><div><span class="eyebrow">${esc(c.id)} · ${esc(c.location)}</span><h2>${esc(c.name)}</h2><p>${esc(c.next)}</p>${badge(c.status)}</div><button class="btn primary" data-case="${c.id}" data-tab="scope">View my renovation ${ico("arrow",15)}</button></section><div class="stats">${stat("Known project cost",compact(f.total),"home",f.known ? "Includes contingency and known fees" : "Unpriced costs remain")}${stat("My committed cash",compact(c.cash),"wallet","Cash remaining in the funding plan")}${stat("Funding still needed",compact(f.gap),"layers","After cash and usable facility")}${stat("My decisions",String(changes.length).padStart(2,"0"),"file","Scope changes awaiting your consent","tinted")}</div><div class="audience-grid"><section class="panel"><div class="panel-header"><div><span class="eyebrow">FOR YOU TO DECIDE</span><h2>Your next steps</h2></div></div><div class="owner-decisions">${changes.map(x=>`<article class="owner-decision"><div>${badge("Your consent needed")}<h3>${esc(x.title)}</h3><p>${esc(x.reason)}</p><div class="change-values"><span>+ ${shortMoney(x.amount)}</span><span>+ ${x.days} days</span></div></div><button class="btn primary" data-case="${c.id}" data-tab="changes">Review scope change ${ico("arrow",14)}</button></article>`).join("") || '<div class="empty"><h3>No decisions waiting.</h3><p>Your acknowledged changes stay in the renovation record.</p></div>'}${f.gap ? `<article class="owner-decision"><div><h3>Understand the funding shortfall</h3><p>${shortMoney(f.gap)} remains uncommitted. A lender has not approved this amount.</p></div><button class="btn" data-case="${c.id}" data-tab="funding">View my funding plan ${ico("arrow",14)}</button></article>` : ""}</div></section><section class="panel role-guide"><span class="eyebrow">YOUR RENOVATION JOURNEY</span><h2>Know what happens next.</h2><ol class="owner-journey">${stages.map(([title,note,done,tab],i)=>`<li><button data-case="${c.id}" data-tab="${tab}"><span class="journey-index ${done ? "done" : ""}">${done ? ico("check",14) : i+1}</span><span><strong>${title}</strong><small>${esc(note)}</small></span>${ico("right",13)}</button></li>`).join("")}</ol><p class="helper">These are workflow states, not a measurement of construction progress.</p></section><section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">YOUR DOCUMENT CHECKLIST</span><h2>What needs preparing or reviewing</h2></div><button class="text-link" data-case="${c.id}" data-tab="evidence">View documents ${ico("arrow",14)}</button></div><div class="owner-docs">${c.documents.map(d=>`<button data-case="${c.id}" data-tab="evidence"><span>${ico("file",18)}<strong>${esc(d.type)}</strong><small>${d.status === "Missing" ? "Prepare a record with your reviewer" : d.status === "Needs correction" ? "Clarification needed" : d.status === "Received" ? "Awaiting reviewer decision" : "Review recorded"}</small></span>${badge(d.status)}</button>`).join("")}</div></section></div>`;
+}
+function lenderOverview() {
+  const cases = visibleCases(), active = cases.filter(c=>c.facilityActive), tasks=cases.map(c=>({c,task:lenderTask(c)})).filter(x=>x.task);
+  const waiting = cases.filter(c=>!c.facilityActive && packetBlockers(c).length);
+  const total = active.reduce((n,c)=>n+rcFinance(c).committed,0), undrawn = active.reduce((n,c)=>n+rcFinance(c).undrawn,0);
+  const auths=cases.filter(c=>c.claim?.status==="Certified" && !rcClaimTotals(c).stale).length;
+  const ready=cases.filter(c=>!c.facilityActive && !packetBlockers(c).length).length;
+  return `${heading("A clearer lending decision.","Separate ready packets, unresolved conditions, and payments needing authorization.")}<div class="audience-label">${ico("wallet",14)} LENDER WORKSPACE <span>Fictional facilities · No lending decision is connected</span></div><div class="stats">${stat("Usable facilities",compact(total),"wallet",`${active.length} fictional facilities recorded`)}${stat("Undrawn facility",compact(undrawn),"layers","Recorded limit less external payments")}${stat("Packets ready for review",String(ready).padStart(2,"0"),"file","Reviewed budget and no open blockers")}${stat("Awaiting authorization",String(auths).padStart(2,"0"),"shield","Certified claims on a current baseline","tinted")}</div><div class="audience-grid"><section class="panel action-panel"><div class="panel-header"><div><span class="eyebrow">DECISION & PAYMENT QUEUE</span><h2>Ready for your action <span class="count-pill">${tasks.length}</span></h2></div></div><div class="action-list">${tasks.map(({c,task})=>taskRow(c,task)).join("") || '<div class="empty"><h3>No lender actions ready.</h3><p>Packets need a reviewed budget and resolved conditions. Claims need separate certification first.</p></div>'}</div><div class="panel-foot">Packet acceptance, credit decisions, authorization and payment records stay distinct.</div></section><section class="panel role-guide"><span class="eyebrow">BEFORE A DECISION</span><h2>Conditions remain visible.</h2><div class="role-big-number">${waiting.length}<small>packets with unresolved conditions</small></div><p>Reviewers resolve source and budget questions. Homeowners acknowledge scope changes. Conditional amounts do not count as usable funding.</p><button class="btn full" data-page="cases">Open financing queue ${ico("arrow",14)}</button></section><section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">NOT READY FOR A DECISION</span><h2>Outstanding financing conditions</h2></div></div><div class="condition-list">${waiting.map(c=>`<button class="condition-row" data-case="${c.id}" data-tab="funding"><span><strong>${esc(c.name)}</strong><small>${esc(c.id)} · ${esc(c.creditStatus)}</small></span><span>${esc(packetBlockers(c).join(" · "))}</span>${ico("arrow",14)}</button>`).join("") || '<div class="empty">No unresolved financing conditions.</div>'}</div></section><section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">FACILITY REGISTER</span><h2>Usable facility commitments</h2></div><button class="text-link" data-page="claims">Payment register ${ico("arrow",14)}</button></div><div class="table-scroll"><table><thead><tr><th>Project</th><th>Facility limit</th><th>Recorded payments</th><th>Undrawn</th><th>Review</th></tr></thead><tbody>${active.map(c=>{const f=rcFinance(c);return `<tr><td><strong>${esc(c.name)}</strong><small class="table-note">${esc(c.id)}</small></td><td>${shortMoney(f.committed)}</td><td>${shortMoney(f.paid)}</td><td>${shortMoney(f.undrawn)}</td><td><button class="icon-btn" data-case="${c.id}" data-tab="funding" aria-label="Review facility ${esc(c.name)}">${ico("arrow",14)}</button></td></tr>`}).join("") || '<tr><td colspan="5" class="empty">No usable facility commitments recorded.</td></tr>'}</tbody></table></div></section></div>`;
 }
 function caseTable(cases) {
   return `<div class="table-scroll"><table><thead><tr><th>Project</th><th>Known cost</th><th>Funding gap</th><th>Stage</th><th>Next</th></tr></thead><tbody>${cases.map((c) => `<tr><td><button class="project-link" data-case="${c.id}"><span class="case-icon mini">${ico("home", 15)}</span><span><strong>${esc(c.name)}</strong><small>${esc(c.location)} · v${c.version}</small><small class="mobile-case-meta">${rcFinance(c).gap ? `Gap ${shortMoney(rcFinance(c).gap)}` : "Funding covered"} · ${rcReadiness(c).docs.length} evidence checks</small></span></button></td><td>${shortMoney(rcFinance(c).total)}${c.unknownCosts.length ? '<small class="table-note">Unpriced items</small>' : ""}</td><td><span class="gap-value ${rcFinance(c).gap === 0 ? "zero" : ""}">${rcFinance(c).gap ? shortMoney(rcFinance(c).gap) : "Covered"}</span></td><td>${badge(c.status)}</td><td><button class="icon-btn" data-case="${c.id}" aria-label="Open ${esc(c.name)}">${ico("arrow", 14)}</button></td></tr>`).join("") || '<tr><td colspan="5" class="empty">No cases match this search.</td></tr>'}</tbody></table></div>`;
 }
 function filteredCases() {
-  return store.cases.filter(
+  return visibleCases().filter(
     (c) =>
       (ui.filter === "All cases" ||
+        (ui.filter === "Ready for decision" && !c.facilityActive && !packetBlockers(c).length) ||
+        (ui.filter === "Unresolved conditions" && !c.facilityActive && packetBlockers(c).length > 0) ||
         (ui.filter === "Needs attention" &&
           (!rcReadiness(c).accepted || rcReadiness(c).docs.length)) ||
         (ui.filter === "Active renovation" && c.facilityActive)) &&
@@ -220,7 +267,7 @@ function filteredCases() {
   );
 }
 function casesView() {
-  return `${heading("Every case, in clearer focus.", "Scope, evidence, and funding progress in one shared place.", btn("New case", "new-case", "plus", true))}<section class="panel"><div class="list-toolbar"><div class="filter-tabs">${["All cases", "Needs attention", "Active renovation"].map((f) => `<button data-filter="${f}" class="${ui.filter === f ? "active" : ""}" aria-pressed="${ui.filter === f}">${f}</button>`).join("")}</div><label class="local-search">${ico("search", 15)}<input id="case-search" placeholder="Search project or owner…" aria-label="Search cases" value="${esc(ui.query)}"></label></div><div id="case-results">${caseTable(filteredCases())}</div><div class="panel-foot">Shared fictional dataset · Perspective switching is not authentication.</div></section>`;
+  return `${heading(ui.role === "lender" ? "Your financing queue." : "Your assigned cases.", ui.role === "lender" ? "Check budget readiness, evidence conditions and usable commitments before a decision." : "Review the cases assigned to you, with source and budget exceptions in view.", ui.role === "reviewer" ? btn("New case", "new-case", "plus", true) : "")}<section class="panel"><div class="list-toolbar"><div class="filter-tabs">${(ui.role === "lender" ? ["All cases", "Ready for decision", "Unresolved conditions"] : ["All cases", "Needs attention", "Active renovation"]).map((f) => `<button data-filter="${f}" class="${ui.filter === f ? "active" : ""}" aria-pressed="${ui.filter === f}">${f}</button>`).join("")}</div><label class="local-search">${ico("search", 15)}<input id="case-search" placeholder="Search project or owner…" aria-label="Search cases" value="${esc(ui.query)}"></label></div><div id="case-results">${caseTable(filteredCases())}</div><div class="panel-foot">Fictional cases for the selected perspective · Demo scoping is not authentication.</div></section>`;
 }
 function caseView() {
   const c = activeCase(),
@@ -232,7 +279,7 @@ function caseView() {
     ["changes", "Changes & claims"],
     ["history", "History"],
   ];
-  return `<button class="back-link" data-page="cases">${ico("left", 13)}All cases</button><div class="case-heading"><div><div class="eyebrow">${esc(c.id)} <span>·</span> ${esc(c.location)}</div><h1>${esc(c.name)}</h1><p>${esc(c.owner)} <span>·</span> Existing-home renovation <span>·</span> ${esc(c.assignee)}</p></div><div class="heading-actions">${badge(c.status)}${btn("Export packet", "export-packet", "download")}</div></div><div class="case-ribbon"><span>${ico("layers", 14)}Budget v${c.version} ${r.accepted ? '<b class="sage-text">Reviewed baseline</b>' : "<b>Review in progress</b>"}</span><span>${ico("clock", 14)}Next: ${esc(c.next)}</span></div><div class="case-tabs" role="tablist" aria-label="Case sections">${tabs.map(([id, t]) => `<button role="tab" id="tab-${id}" aria-selected="${ui.tab === id}" aria-controls="case-tab-panel" tabindex="${ui.tab === id ? "0" : "-1"}" class="${ui.tab === id ? "active" : ""}" data-tab="${id}"><span class="tab-step" aria-hidden="true" data-step="${String(tabs.findIndex(([key]) => key === id) + 1).padStart(2, "0")}"></span>${t}${id === "evidence" && r.docs.length ? `<i>${r.docs.length}</i>` : ""}</button>`).join("")}</div><div id="case-tab-panel" role="tabpanel" aria-labelledby="tab-${ui.tab}">${ui.tab === "funding" ? fundingTab(c) : ui.tab === "evidence" ? evidenceTab(c) : ui.tab === "changes" ? changesTab(c) : ui.tab === "history" ? historyTab(c) : scopeTab(c)}</div>`;
+  return `<button class="back-link" data-page="${ui.role === "owner" ? "overview" : "cases"}">${ico("left", 13)}${ui.role === "owner" ? "My home" : "All cases"}</button><div class="case-heading"><div><div class="eyebrow">${esc(c.id)} <span>·</span> ${esc(c.location)}</div><h1>${esc(c.name)}</h1><p>${esc(c.owner)} <span>·</span> Existing-home renovation <span>·</span> ${esc(c.assignee)}</p></div><div class="heading-actions">${badge(c.status)}${btn("Export packet", "export-packet", "download")}</div></div><div class="case-ribbon"><span>${ico("layers", 14)}Budget v${c.version} ${r.accepted ? '<b class="sage-text">Reviewed baseline</b>' : "<b>Review in progress</b>"}</span><span>${ico("clock", 14)}Next: ${esc(c.next)}</span></div><div class="case-tabs" role="tablist" aria-label="Case sections">${tabs.map(([id, t]) => `<button role="tab" id="tab-${id}" aria-selected="${ui.tab === id}" aria-controls="case-tab-panel" tabindex="${ui.tab === id ? "0" : "-1"}" class="${ui.tab === id ? "active" : ""}" data-tab="${id}"><span class="tab-step" aria-hidden="true" data-step="${String(tabs.findIndex(([key]) => key === id) + 1).padStart(2, "0")}"></span>${t}${id === "evidence" && r.docs.length ? `<i>${r.docs.length}</i>` : ""}</button>`).join("")}</div><div id="case-tab-panel" role="tabpanel" aria-labelledby="tab-${ui.tab}">${ui.tab === "funding" ? fundingTab(c) : ui.tab === "evidence" ? evidenceTab(c) : ui.tab === "changes" ? changesTab(c) : ui.tab === "history" ? historyTab(c) : scopeTab(c)}</div>`;
 }
 function scopeTab(c) {
   const r = rcReadiness(c),
@@ -245,12 +292,12 @@ function fundingTab(c) {
 }
 function evidenceTab(c) {
   const open = rcReadiness(c).docs.length;
-  return `<section class="panel"><div class="panel-header"><div><span class="eyebrow">A CLEARER RECORD</span><h2>Evidence, with context.</h2><p>Received is not verified. Every review records its source, scope, and rationale.</p></div>${btn("Add demo record", "add-evidence", "plus")}</div><div class="evidence-summary"><span>${c.documents.length - open} records accepted / not applicable</span><span>${open} need attention</span></div><div class="document-list">${c.documents.map((d) => `<button class="document-item" data-document="${d.id}"><span class="document-icon">${ico(d.id === "site" ? "eye" : "file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(d.name)} <i>·</i> v${d.version}</span><small>${esc(d.note)}</small></span>${badge(d.status)}<span class="row-arrow">${ico("right", 15)}</span></button>`).join("")}</div><div class="panel-foot">${ico("info", 13)}Illustrative source records only. No real identity, legal, site, or bank document has been verified.</div></section>`;
+  return `<section class="panel"><div class="panel-header"><div><span class="eyebrow">A CLEARER RECORD</span><h2>Evidence, with context.</h2><p>Received is not verified. Every review records its source, scope, and rationale.</p></div>${ui.role === "reviewer" ? btn("Add demo record", "add-evidence", "plus") : ""}</div><div class="evidence-summary"><span>${c.documents.length - open} records accepted / not applicable</span><span>${open} need attention</span></div><div class="document-list">${c.documents.map((d) => `<button class="document-item" data-document="${d.id}"><span class="document-icon">${ico(d.id === "site" ? "eye" : "file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(d.name)} <i>·</i> v${d.version}</span><small>${esc(d.note)}</small></span>${badge(d.status)}<span class="row-arrow">${ico("right", 15)}</span></button>`).join("")}</div><div class="panel-foot">${ico("info", 13)}Illustrative source records only. No real identity, legal, site, or bank document has been verified.</div></section>`;
 }
 function changesTab(c) {
   const x = c.claim,
     t = rcClaimTotals(c);
-  return `<div class="case-grid"><div class="right-stack"><section class="panel"><div class="panel-header"><div><span class="eyebrow">KEEP THE AGREEMENT CLEAR</span><h2>Change orders</h2><p>Owner consent, revised cost, and review are separate steps.</p></div>${btn("New change", "new-change", "plus")}</div><div class="changes-list">${c.changes.map((change) => `<article class="change-card"><div class="between"><span class="eyebrow">${esc(change.id)}</span>${badge(change.status)}</div><h3>${esc(change.title)}</h3><p>${esc(change.reason)}</p><div class="change-values"><span>+ ${shortMoney(change.amount)}</span><span>+ ${change.days} days</span><span>${change.ownerAck ? "Owner acknowledged" : "Owner acknowledgment required"}</span></div>${change.status !== "Accepted" ? `<button class="btn small" data-change="${change.id}" ${ui.role === "owner" ? (change.ownerAck ? "disabled" : "") : ui.role === "reviewer" && change.ownerAck ? "" : "disabled"}>${ui.role === "owner" ? "Acknowledge scope & cost" : "Review change order"}${ico("arrow", 13)}</button>` : ""}</article>`).join("") || '<div class="empty"><span class="empty-icon">' + ico("layers", 23) + "</span><h3>No change orders yet</h3><p>Keep scope changes visible before they become unexpected costs.</p></div>"}</div></section><section class="panel milestone-panel ${x ? "has-claim" : ""}"><div class="panel-header"><div><span class="eyebrow">WORK BEFORE PAYMENT</span><h2>Milestone claim</h2><p>Requested, certified, authorized, and paid stay distinct.</p></div></div>${x ? `<div class="claim-content"><div class="between"><strong>${x.id} · Wet-area works</strong>${badge(t.stale ? "Stale baseline" : x.status)}</div><div class="claim-amounts"><div><span>Claimed</span><strong>${shortMoney(t.requested)}</strong></div><div><span>Certified</span><strong>${x.status === "Submitted" ? "Not reviewed" : shortMoney(t.certified)}</strong></div><div><span>Authorized</span><strong>${x.authorization ? shortMoney(x.authorization.amount) : "Not authorized"}</strong></div><div><span>Paid</span><strong>${shortMoney(t.paid)}</strong></div></div><p class="sub">${esc(x.note)}</p><div class="notice ${t.stale ? "clay" : ""}">${t.stale ? "Budget changed. This claim cannot progress against a stale baseline." : `Linked to accepted budget v${x.baseline}. Demo agreement: no advance recovery or retention. Claims cannot exceed eligible scope.`}</div><div class="claim-actions">${x.status === "Submitted" ? `<button class="btn primary" data-action="certify-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review & certify ${ico("arrow", 14)}</button><button class="btn" data-action="request-correction" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Request correction</button>` : x.status === "Correction requested" ? `<button class="btn" data-action="revised-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review revised submission</button>` : x.status === "Certified" ? `<button class="btn primary" data-action="authorize-claim" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record demo authorization ${ico("shield", 14)}</button>` : ["Authorized", "Partially paid"].includes(x.status) ? `<button class="btn primary" data-action="record-payment" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record external payment ${ico("wallet", 14)}</button>` : x.status === "Paid" ? `<button class="btn primary" data-action="reconcile-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Reconcile payment records ${ico("check", 14)}</button>` : badge("Reconciled")}<button class="text-link" data-action="claim-detail">View claim detail ${ico("arrow", 13)}</button></div>${ui.role === "owner" ? '<p class="helper">Certification and authorization belong to the reviewer and lender perspectives.</p>' : x.status === "Certified" && ui.role !== "lender" ? '<p class="helper">Switch to the lender perspective to record a separate authorization.</p>' : ""}</div>` : '<div class="empty"><span class="empty-icon">' + ico("wallet", 23) + '</span><h3>No claim submitted</h3><p>The Bintaro Courtyard demo includes a claim you can review end to end.</p><button class="btn" data-case="RC-025" data-tab="changes">Explore the sample claim ' + ico("arrow", 14) + "</button></div>"}</section></div><div class="right-stack"><section class="panel summary-card"><span class="eyebrow">THE EVIDENCE CHAIN</span><h2>Every step means something.</h2><ol class="stage-list">${[
+  return `<div class="case-grid"><div class="right-stack"><section class="panel"><div class="panel-header"><div><span class="eyebrow">KEEP THE AGREEMENT CLEAR</span><h2>Change orders</h2><p>Owner consent, revised cost, and review are separate steps.</p></div>${ui.role === "reviewer" ? btn("New change", "new-change", "plus") : ""}</div><div class="changes-list">${c.changes.map((change) => `<article class="change-card"><div class="between"><span class="eyebrow">${esc(change.id)}</span>${badge(change.status)}</div><h3>${esc(change.title)}</h3><p>${esc(change.reason)}</p><div class="change-values"><span>+ ${shortMoney(change.amount)}</span><span>+ ${change.days} days</span><span>${change.ownerAck ? "Owner acknowledged" : "Owner acknowledgment required"}</span></div>${change.status !== "Accepted" ? `<button class="btn small" data-change="${change.id}" ${ui.role === "owner" ? (change.ownerAck ? "disabled" : "") : ui.role === "reviewer" && change.ownerAck ? "" : "disabled"}>${ui.role === "owner" ? "Acknowledge scope & cost" : "Review change order"}${ico("arrow", 13)}</button>` : ""}</article>`).join("") || '<div class="empty"><span class="empty-icon">' + ico("layers", 23) + "</span><h3>No change orders yet</h3><p>Keep scope changes visible before they become unexpected costs.</p></div>"}</div></section><section class="panel milestone-panel ${x ? "has-claim" : ""}"><div class="panel-header"><div><span class="eyebrow">WORK BEFORE PAYMENT</span><h2>Milestone claim</h2><p>Requested, certified, authorized, and paid stay distinct.</p></div></div>${x ? `<div class="claim-content"><div class="between"><strong>${x.id} · Wet-area works</strong>${badge(t.stale ? "Stale baseline" : x.status)}</div><div class="claim-amounts"><div><span>Claimed</span><strong>${shortMoney(t.requested)}</strong></div><div><span>Certified</span><strong>${x.status === "Submitted" ? "Not reviewed" : shortMoney(t.certified)}</strong></div><div><span>Authorized</span><strong>${x.authorization ? shortMoney(x.authorization.amount) : "Not authorized"}</strong></div><div><span>Paid</span><strong>${shortMoney(t.paid)}</strong></div></div><p class="sub">${esc(x.note)}</p><div class="notice ${t.stale ? "clay" : ""}">${t.stale ? "Budget changed. This claim cannot progress against a stale baseline." : `Linked to accepted budget v${x.baseline}. Demo agreement: no advance recovery or retention. Claims cannot exceed eligible scope.`}</div><div class="claim-actions">${x.status === "Submitted" ? `<button class="btn primary" data-action="certify-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review & certify ${ico("arrow", 14)}</button><button class="btn" data-action="request-correction" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Request correction</button>` : x.status === "Correction requested" ? `<button class="btn" data-action="revised-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review revised submission</button>` : x.status === "Certified" ? `<button class="btn primary" data-action="authorize-claim" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record demo authorization ${ico("shield", 14)}</button>` : ["Authorized", "Partially paid"].includes(x.status) ? `<button class="btn primary" data-action="record-payment" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record external payment ${ico("wallet", 14)}</button>` : x.status === "Paid" ? `<button class="btn primary" data-action="reconcile-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Reconcile payment records ${ico("check", 14)}</button>` : badge("Reconciled")}<button class="text-link" data-action="claim-detail">View claim detail ${ico("arrow", 13)}</button></div>${ui.role === "owner" ? '<p class="helper">Certification and authorization belong to the reviewer and lender perspectives.</p>' : x.status === "Certified" && ui.role !== "lender" ? '<p class="helper">Switch to the lender perspective to record a separate authorization.</p>' : ""}</div>` : '<div class="empty"><span class="empty-icon">' + ico("wallet", 23) + '</span><h3>No claim submitted</h3><p>A claim appears here when work is submitted against the agreed scope.</p></div>'}</section></div><div class="right-stack"><section class="panel summary-card"><span class="eyebrow">THE EVIDENCE CHAIN</span><h2>Every step means something.</h2><ol class="stage-list">${[
     ["Contractor claim", "What was requested"],
     ["Reviewer certification", "What evidence supports"],
     ["Lender authorization", "What is permitted"],
@@ -269,8 +316,8 @@ function historyTab(c) {
   return `<section class="panel"><div class="panel-header"><div><span class="eyebrow">THE STORY OF THIS CASE</span><h2>A record of what changed.</h2><p>Local demo events and preserved budget snapshots.</p></div><span class="count-pill">${c.history.length} events</span></div><div class="history-list">${c.history.map((e) => `<article class="history-item"><span class="history-icon">${ico("history", 15)}</span><div><strong>${esc(e.message)}</strong><p>${esc(e.detail)}</p><small>${esc(e.actor)} <span>·</span> ${when(e.time)} WIB</small></div></article>`).join("")}</div>${c.snapshots.length ? `<div class="snapshot-list"><h3>Preserved budget versions</h3>${c.snapshots.map((s) => `<div class="cost-row"><span>Budget v${s.version} · ${s.lines.length} lines</span><strong>${shortMoney(s.lines.reduce((sum, l) => sum + Math.round(l.quantity * l.rate), 0))}</strong></div>`).join("")}</div>` : ""}<div class="panel-foot">This browser-only history demonstrates the workflow; it is not a secure or immutable audit system.</div></section>`;
 }
 function claimsView() {
-  const cases = store.cases.filter((c) => c.claim);
-  return `${heading("Work, evidence, and the payment between.", "Keep every stage of a claim visible. No money moves in this mockup.")}<div class="claim-register">${
+  const cases = visibleCases().filter((c) => c.claim);
+  return `${heading(ui.role === "lender" ? "Authorizations & payment records." : "Claims & reconciliation.", "Keep every stage of a claim visible. No money moves in this mockup.")}<div class="claim-register">${
     cases
       .map((c) => {
         const t = rcClaimTotals(c);
@@ -280,22 +327,23 @@ function claimsView() {
   }</div>`;
 }
 function evidenceInbox() {
-  const pending = store.cases.flatMap((c) =>
+  if (ui.role === "owner") return `${heading("Your renovation documents.", "See what is received, what needs clarification, and what your reviewer has accepted.")}${evidenceTab(visibleCases()[0])}`;
+  const pending = visibleCases().flatMap((c) =>
     c.documents
       .filter(
         (d) => !["Reviewer accepted", "Not applicable"].includes(d.status),
       )
       .map((d) => ({ c, d })),
   );
-  return `${heading("The facts behind every next step.", "Review the records that need a correction, a source, or a qualified decision.")}<section class="panel"><div class="panel-header"><h2>Evidence needing attention</h2><span class="count-pill">${pending.length} records</span></div><div class="document-list">${pending.map(({ c, d }) => `<button class="document-item" data-evidence-case="${c.id}" data-document="${d.id}"><span class="document-icon">${ico("file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(c.name)} <i>·</i> ${esc(d.name)}</span><small>${esc(d.note)}</small></span>${badge(d.status)}${ico("right", 14)}</button>`).join("") || '<div class="empty"><h3>The inbox is clear.</h3><p>New source records and corrections will appear here.</p></div>'}</div></section>`;
+  return `${heading(ui.role === "lender" ? "Evidence conditions to resolve." : "The facts behind every next step.", ui.role === "lender" ? "Track outstanding source checks. Evidence acceptance belongs to the case reviewer." : "Review the records that need a correction, a source, or a qualified decision.")}<section class="panel"><div class="panel-header"><h2>Evidence needing attention</h2><span class="count-pill">${pending.length} records</span></div><div class="document-list">${pending.map(({ c, d }) => `<button class="document-item" data-evidence-case="${c.id}" data-document="${d.id}"><span class="document-icon">${ico("file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(c.name)} <i>·</i> ${esc(d.name)}</span><small>${esc(d.note)}</small></span>${badge(d.status)}${ico("right", 14)}</button>`).join("") || '<div class="empty"><h3>The inbox is clear.</h3><p>New source records and corrections will appear here.</p></div>'}</div></section>`;
 }
 function activityView() {
-  const entries = store.cases
+  const entries = visibleCases()
     .flatMap((c) =>
       c.history.map((e) => ({ ...e, caseId: c.id, caseName: c.name })),
     )
     .sort((a, b) => new Date(b.time) - new Date(a.time));
-  return `${heading("A shared record of progress.", "Every review, change, and demo payment record in one place.")}<section class="panel"><div class="history-list">${entries.map((e) => `<article class="history-item"><span class="history-icon">${ico("history", 16)}</span><div><strong>${esc(e.message)}</strong><p>${esc(e.caseName)} · ${esc(e.detail)}</p><small>${esc(e.actor)} · ${when(e.time)} WIB</small></div><button class="text-link" data-case="${e.caseId}" data-tab="history">Open ${ico("arrow", 13)}</button></article>`).join("")}</div></section>`;
+  return `${heading(ui.role === "owner" ? "Your renovation updates." : ui.role === "lender" ? "Your decision activity." : "Your case review activity.", "Recorded reviews, changes, and demo payment events for this perspective.")}<section class="panel"><div class="history-list">${entries.map((e) => `<article class="history-item"><span class="history-icon">${ico("history", 16)}</span><div><strong>${esc(e.message)}</strong><p>${esc(e.caseName)} · ${esc(e.detail)}</p><small>${esc(e.actor)} · ${when(e.time)} WIB</small></div><button class="text-link" data-case="${e.caseId}" data-tab="history">Open ${ico("arrow", 13)}</button></article>`).join("")}</div></section>`;
 }
 function settingsView() {
   return `${heading("A workspace for the next conversation.", "Explore the mockup with fictional information only.")}<section class="panel settings-panel"><h2>Demo perspectives</h2><p>The role switch demonstrates a workflow. It does not create accounts or enforce real authorization.</p><div class="perspective-options">${Object.entries(
@@ -578,7 +626,7 @@ const actions = {
   perspective: () =>
     openModal(
       "Choose a demo perspective.",
-      `<p class="sub">Explore the handoffs between people. This switch simulates roles; it is not authentication or a production permission boundary.</p><div class="perspective-options vertical">${Object.entries(
+      `<p class="sub">Choose an audience to open its dashboard. Each perspective has its own priorities and demo case scope. This switch is not authentication or a production permission boundary.</p><div class="perspective-options vertical">${Object.entries(
         RC_ROLES,
       )
         .map(
@@ -672,11 +720,15 @@ document.addEventListener("click", (e) => {
     e.preventDefault();
     navigate(d.page);
   } else if (d.role) {
+    if (!RC_ROLES[d.role]) return;
     ui.role = d.role;
+    ui.query = ""; ui.filter = "All cases"; ui.notifications = false; ui.menu = false;
+    if (!visibleCases().some(c => c.id === ui.caseId)) { ui.caseId = visibleCases()[0]?.id; ui.page = "overview"; }
     closeModal();
-    render();
-    notify(`${RC_ROLES[ui.role].label} demo perspective selected.`);
+    navigate("overview");
+    notify(`${RC_ROLES[ui.role].label} workspace opened.`);
   } else if (d.evidenceCase) {
+    if (!visibleCases().some(c => c.id === d.evidenceCase)) return;
     ui.caseId = d.evidenceCase;
     documentModal(d.document);
   } else if (d.document) {
@@ -1352,7 +1404,7 @@ document.addEventListener("keydown", (e) => {
       render();
     }
   }
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && ui.role !== "owner") {
     e.preventDefault();
     if (window.innerWidth <= 1050) {
       navigate("cases");

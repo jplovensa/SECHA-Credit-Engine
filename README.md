@@ -62,3 +62,9 @@ Tests launch a temporary server beneath a GitHub Pages-style project subpath and
 `.github/workflows/pages.yml` runs syntax and browser checks, then packages only `index.html`, `styles.css`, `app.js`, `model.js` and `assets/`. Enable **Settings → Pages → GitHub Actions**. Pushes to `main` or manual workflow dispatch trigger validation/deployment. Publishing is confirmed only by a successful Pages deployment, not by a source push.
 
 The original arch-and-leaf mark and wordmark are in `assets/renovacredit-mark.svg` and `assets/renovacredit-logo.svg`. Inter licensing is in `assets/fonts/OFL.txt`.
+
+## Audience workspaces
+
+The role switch opens three different demo dashboards. Homeowners see only Nadia Pratama’s Bekasi case, its budget and funding gap, pending consent requests, document checklist and workflow stages. Reviewers see their assigned cases, unreviewed scope lines, unresolved evidence, certification and reconciliation tasks. Lenders see usable and undrawn facilities, packets ready for review, unresolved financing conditions and current-baseline authorization/payment actions. All metrics and queues derive from the same underlying case records.
+
+Homeowner case links, document inbox, activity, notifications and navigation are scoped to RC-026. Selecting a perspective always opens its own dashboard. The homeowner perspective uses RC-026 even when another case was previously open. This is presentation scoping in a browser mockup, not authentication or server-enforced access control. The reviewer assignment uses the fictional case assignee; lender cases represent one shared demonstration workspace, not separate institutions. No construction completion percentage or predicted risk score is inferred.

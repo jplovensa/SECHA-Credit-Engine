@@ -83,8 +83,12 @@ const server = http.createServer(async (req, res) => {
       "PASS: project-subpath hosting, local fonts, action dashboard and IDR funding arithmetic",
     );
     const role = async (name) => {
+      const previous = await page.evaluate(() => ({page:ui.page, caseId:ui.caseId, tab:ui.tab}));
       await page.locator(".workspace-context .perspective").click();
       await page.locator(`.modal [data-role="${name}"]`).click();
+      assert.equal(await page.evaluate(() => ui.page), "overview");
+      // Return to the case to exercise a handoff after opening the role dashboard.
+      if (previous.page === "case") await page.evaluate(({caseId,tab}) => openCase(caseId,tab), previous);
     };
     const caseUI = async (name) => {
       await page.locator('.sidebar [data-page="cases"]').click();
@@ -448,6 +452,84 @@ const server = http.createServer(async (req, res) => {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     assert.deepEqual(failures, []);
+    // Audience dashboards must differ in data, tasks and navigation, not just titles.
+    const audience = await context.newPage();
+    audience.on("pageerror", e => errors.push(e.message));
+    await audience.goto(base + prefix);
+    await audience.evaluate(() => { store = rcSeed(); ui.page = "overview"; render(); });
+    const switchAudience = async id => {
+      await audience.locator(".workspace-context .perspective").click();
+      await audience.locator(`.modal [data-role="${id}"]`).click();
+    };
+    const home = async () => audience.locator('.sidebar button[data-page="overview"]').click();
+    assert.match(await audience.locator("h1").textContent(), /review desk/);
+    assert.match(await audience.locator(".stats").textContent(), /Scope lines to review/);
+    await switchAudience("owner");
+    assert.match(await audience.locator("h1").textContent(), /Your renovation/);
+    assert.equal(await audience.locator(".owner-hero h2").textContent(), "Bekasi Family Home");
+    assert.equal(await audience.getByRole("button", {name:"New case",exact:true}).count(),0);
+    assert.equal(await audience.locator('.sidebar [data-page="claims"]').count(),0);
+    assert.equal(await audience.locator(".owner-decision").count(),2);
+    assert.match(await audience.locator(".stats").textContent(), /Rp240/);
+    for (const target of ["evidence","activity","cases","overview"]) {
+      await audience.evaluate(target => navigate(target),target);
+      assert.doesNotMatch(await audience.locator("#main-content").textContent(), /Bintaro Courtyard|Cibubur Garden House|Serpong Terrace|Ciputat Rumah Kita/);
+    }
+    await audience.evaluate(() => openCase("RC-025","changes"));
+    assert.equal(await audience.evaluate(() => ui.caseId), "RC-026");
+    await audience.getByRole("button", {name:"Review scope change",exact:true}).click();
+    await audience.locator('[data-change="CO-008"]').click();
+    await audience.locator('[name="ack"]').check();
+    await audience.getByRole("button",{name:"Record demo owner acknowledgment"}).click();
+    await home();
+    assert.equal(await audience.getByRole("button",{name:"Review scope change",exact:true}).count(),0);
+    assert.equal(await audience.locator(".stat").last().locator("strong").textContent(),"00");
+    await switchAudience("reviewer");
+    assert.match(await audience.locator(".action-list").textContent(), /Review the acknowledged scope change/);
+    await switchAudience("lender");
+    assert.match(await audience.locator("h1").textContent(), /lending decision/);
+    assert.match(await audience.locator(".stats").textContent(), /Usable facilities.*Rp264/);
+    assert.equal(await audience.locator('.stats .stat').nth(2).locator('strong').textContent(),"01");
+    assert.equal(await audience.locator('.stats .stat').nth(3).locator('strong').textContent(),"00");
+    assert.equal(await audience.locator('.action-list [data-case="RC-025"]').count(),0);
+    assert.equal(await audience.locator('.action-list [data-case="RC-023"]').count(),1);
+    await audience.locator('.action-list [data-case="RC-023"]').click();
+    assert.equal(await audience.getByRole("tab",{name:"Funding plan",exact:true}).getAttribute("aria-selected"),"true");
+    await home();
+    await audience.locator('.sidebar [data-page="cases"]').click();
+    await audience.locator('[data-filter="Ready for decision"]').click();
+    assert.equal(await audience.locator('#case-results tbody tr').count(),1);
+    assert.match(await audience.locator('#case-results').textContent(),/Depok Starter Home/);
+    await audience.locator('[data-filter="Unresolved conditions"]').click();
+    assert.equal(await audience.locator('#case-results tbody tr').count(),3);
+    assert.doesNotMatch(await audience.locator('#case-results').textContent(),/Bintaro Courtyard|Depok Starter Home/);
+    await home();
+    // A certified current claim enters the lender queue; a stale one leaves it.
+    await audience.evaluate(() => {
+      const c=store.cases.find(c=>c.id==="RC-025");
+      c.claim.status="Certified"; c.claim.items[0].certified=20000000; c.claim.items[1].certified=32000000;
+      render();
+    });
+    assert.equal(await audience.locator('.action-list [data-case="RC-025"]').count(),1);
+    assert.match(await audience.locator('.action-list [data-case="RC-025"]').textContent(),/Authorize certified work/);
+    await audience.locator('.action-list [data-case="RC-025"]').click();
+    assert.equal(await audience.getByRole("button",{name:"Record demo authorization",exact:true}).isEnabled(),true);
+    await audience.evaluate(() => { activeCase().version++; navigate("overview"); });
+    assert.equal(await audience.locator('.action-list [data-case="RC-025"]').count(),0);
+    await audience.evaluate(() => openCase("RC-025","changes"));
+    await switchAudience("owner");
+    assert.equal(await audience.evaluate(() => ui.page),"overview");
+    assert.equal(await audience.locator('.owner-hero h2').textContent(),"Bekasi Family Home");
+    for (const width of [320,390,768,1440]) {
+      await audience.setViewportSize({width,height:900});
+      for (const roleId of ["owner","reviewer","lender"]) {
+        await audience.evaluate(roleId=>{ui.role=roleId;ui.page="overview";render()},roleId);
+        assert.equal(await audience.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${roleId} dashboard overflows at ${width}`);
+      }
+    }
+    console.log("PASS: distinct audience dashboards, scoped homeowner views, consent updates, readiness queues and responsive layouts");
+    assert.deepEqual(errors, []);
+    await audience.close();
     const mobile = await browser.newContext({
         viewport: { width: 390, height: 844 },
         reducedMotion: "reduce",
