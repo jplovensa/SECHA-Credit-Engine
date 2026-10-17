@@ -145,7 +145,7 @@ function render() {
   const role = RC_ROLES[ui.role],
     pending = store.cases.reduce((s, c) => s + rcReadiness(c).docs.length, 0);
   document.querySelector("#app").innerHTML =
-    `${ui.menu ? '<button class="scrim" data-action="menu" aria-label="Close navigation"></button>' : ""}<aside class="sidebar ${ui.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-page="overview"><img src="assets/renovacredit-mark.svg" alt=""><div><strong>renova<span>credit</span></strong><small>RENOVATION FINANCE · BY SECHA</small></div></a><div class="workspace-picker"><span class="workspace-symbol">${ico("home", 17)}</span><div><strong>Renovation workspace</strong><small>Jabodetabek · Demo</small></div></div><div class="nav-label">WORKSPACE</div><nav>${[
+    `${ui.menu ? '<button class="scrim" data-action="menu" aria-label="Close navigation"></button>' : ""}<aside class="sidebar ${ui.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-page="overview"><img class="brand-lockup" src="assets/renovacredit-logo.svg" alt="RenovaCredit by SECHA"></a><div class="workspace-picker"><span class="workspace-symbol">${ico("home", 17)}</span><div><strong>Renovation workspace</strong><small>Jabodetabek · Demo</small></div></div><div class="nav-label">WORKSPACE</div><nav>${[
       ["overview", "grid"],
       ["cases", "layers"],
       ["claims", "wallet"],

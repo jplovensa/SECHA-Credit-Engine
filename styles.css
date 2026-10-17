@@ -4353,3 +4353,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .tab-step::before { content: attr(data-step); }
 @media (max-width: 700px) { .heading .heading-actions { margin-top: 16px; } }
 @media (max-width: 700px) { .workspace-context { flex-wrap: wrap; row-gap: 12px; } }
+
+/* The brand lockup uses outlined Inter: consistent in every browser. */
+.brand { padding: 0 7px; min-height: 44px; }
+.brand img.brand-lockup { display: block; width: 192px; height: auto; max-width: 100%; }

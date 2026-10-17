@@ -1,6 +1,6 @@
 # RenovaCredit by SECHA
 
-An interactive mockup of an evidence-led renovation finance workflow for Indonesia. A calm eucalyptus, warm-white and muted terracotta identity pairs a new architectural logo with locally hosted Inter. The dashboard prioritizes due-date actions, a focused case summary, budget review, evidence and funding gaps. No composite credit score or property-value prediction is used.
+An interactive mockup of an evidence-led renovation finance workflow for Indonesia. A calm eucalyptus, warm-white and muted terracotta identity pairs a restrained typographic identity with locally hosted Inter. The dashboard prioritizes due-date actions, a focused case summary, budget review, evidence and funding gaps. No composite credit score or property-value prediction is used.
 
 ## Run
 
