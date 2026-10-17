@@ -1,0 +1,13 @@
+{
+  "name": "secha-credit-engine",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Static SECHA renovation lending prototype",
+  "scripts": {
+    "check": "node --check app.js",
+    "test": "node tests/smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
