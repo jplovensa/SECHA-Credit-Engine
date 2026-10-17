@@ -1,45 +1,40 @@
 "use strict";
-// A static, local-first prototype. No production credit decisions or external services.
-const paths = {
+const SHAPES = {
   grid: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
-  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5",
-  chart: "M3 3v18h18 M7 14l4-5 4 3 6-8",
-  shield: "M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6",
-  building:
-    "M4 21V7l8-4 8 4v14 M2 21h20 M8 8v2 M12 8v2 M16 8v2 M8 13v2 M12 13v2 M16 13v2 M10 21v-3h4v3",
-  wallet:
-    "M20 8V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h16v11H5a3 3 0 0 1-3-3V6 M21 12h-6v5h6",
+  home: "m3 10 9-7 9 7 M5 9v12h14V9 M9 21v-7h6v7",
+  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12V8z M14 2v6h6 M8 13h8 M8 17h5",
+  layers: "m12 3 10 5-10 5L2 8z M2 12l10 5 10-5 M2 16l10 5 10-5",
+  wallet: "M20 8V4H5a3 3 0 0 0 0 6h16v11H5a3 3 0 0 1-3-3V7 M21 13h-6v4h6",
+  shield: "m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z m-4 9 3 3 5-6",
+  search: "m21 21-5-5 M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4",
+  arrow: "M4 12h16 M14 6l6 6-6 6",
+  up: "M7 17 17 7 M7 7h10v10",
+  down: "m7 10 5 5 5-5",
+  right: "m9 5 7 7-7 7",
+  left: "m15 5-7 7 7 7",
+  plus: "M12 5v14 M5 12h14",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2",
+  check: "m5 12 4 4L19 6",
+  alert: "m12 3 10 18H2z M12 9v5 M12 17h.01",
+  close: "m6 6 12 12 M18 6 6 18",
+  download: "M12 3v12 m-5-5 5 5 5-5 M4 17v4h16v-4",
+  history: "M3 10a9 9 0 1 1 2 8 M3 4v6h6 M12 7v5l3 2",
+  info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 11v6 M12 7h.01",
+  menu: "M4 6h16 M4 12h16 M4 18h16",
   settings:
     "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 3-1 3-5 3-3-2-3-1-3-5 2-3z",
-  search: "M21 21l-5-5 M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14",
-  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4",
-  down: "M8 10l4 4 4-4",
-  right: "M9 5l7 7-7 7",
-  left: "M15 5l-7 7 7 7",
-  arrow: "M4 12h16 M14 6l6 6-6 6",
-  up: "M7 17L17 7 M7 7h10v10",
-  trend: "M3 17l6-6 4 4 8-10 M15 5h6v6",
-  plus: "M12 5v14 M5 12h14",
-  download: "M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5",
+  leaf: "M20 3C8 2 2 8 6 15s16 4 14-12 M4 21 16 8",
+  paperclip: "m8 13 7-7a3 3 0 0 1 4 4l-9 9a5 5 0 0 1-7-7l9-9",
+  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6",
+  edit: "m16 3 5 5-13 13H3v-5z M14 5l5 5",
   calendar: "M4 5h16v16H4z M4 10h16 M8 3v4 M16 3v4",
-  check: "M5 12l4 4L19 6",
-  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2",
-  info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 11v6 M12 7h.01",
-  alert: "M12 3L2 21h20z M12 9v5 M12 17h.01",
-  close: "M6 6l12 12 M18 6L6 18",
-  layers: "M12 3L2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5",
-  help: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M9 9a3 3 0 1 1 4 3v2 M12 17h.01",
-  menu: "M4 6h16 M4 12h16 M4 18h16",
-  refresh:
-    "M20 7v5h-5 M4 17v-5h5 M6 7a7 7 0 0 1 12-2l2 3 M4 16l2 3a7 7 0 0 0 12-2",
-  user: "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-3a8 8 0 0 1 16 0v3",
-  lock: "M6 10h12v11H6z M8 10V6a4 4 0 0 1 8 0v4",
-  leaf: "M20 3C8 2 2 8 6 15s16 4 14-12 M4 21l12-13",
-  dots: "M5 12h.01 M12 12h.01 M19 12h.01",
+  filter: "M3 5h18 M6 12h12 M10 19h4",
+  link: "m10 13 4-4 M8 15l-2 2a3 3 0 0 1-4-4l5-5a3 3 0 0 1 4 0 M16 9l2-2a3 3 0 0 1 4 4l-5 5a3 3 0 0 1-4 0",
 };
-const icon = (name, size = 18) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.file}"/></svg>`;
-const escapeHTML = (v) =>
+const ico = (n, s = 18) =>
+  `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${SHAPES[n] || SHAPES.file}"/></svg>`;
+const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
     (c) =>
@@ -47,1047 +42,1356 @@ const escapeHTML = (v) =>
         c
       ],
   );
-const money = (v) =>
-  `Rp ${new Intl.NumberFormat("en-US", { maximumFractionDigits: Math.abs(v) >= 1000 ? 2 : 1 }).format(Math.abs(v) >= 1000 ? v / 1000 : v)}${Math.abs(v) >= 1000 ? "B" : "M"}`;
-const today = () => new Date().toISOString();
-const defaults = [
-  {
-    id: "SC-2026-001",
-    name: "Menteng Heritage",
-    borrower: "Aditya Pratama",
-    location: "Menteng, Jakarta",
-    amount: 1250,
-    value: 2400,
-    income: 65,
-    debt: 8,
-    months: 60,
-    contractor: 95,
-    score: 92,
-    status: "In review",
-    progress: 68,
-    created: "2026-10-15",
-  },
-  {
-    id: "SC-2026-002",
-    name: "BSD Residence",
-    borrower: "Diana Putri",
-    location: "BSD City, Tangerang",
-    amount: 850,
-    value: 1650,
-    income: 42,
-    debt: 5,
-    months: 60,
-    contractor: 89,
-    score: 88,
-    status: "In review",
-    progress: 42,
-    created: "2026-10-14",
-  },
-  {
-    id: "SC-2026-003",
-    name: "Kemang Townhouse",
-    borrower: "Rizky Santoso",
-    location: "Kemang, Jakarta",
-    amount: 2100,
-    value: 3000,
-    income: 80,
-    debt: 18,
-    months: 84,
-    contractor: 75,
-    score: 74,
-    status: "Pending docs",
-    progress: 25,
-    created: "2026-10-13",
-  },
-  {
-    id: "SC-2026-004",
-    name: "Sentul Green Living",
-    borrower: "Maya Kusuma",
-    location: "Sentul, Bogor",
-    amount: 650,
-    value: 1400,
-    income: 38,
-    debt: 3,
-    months: 60,
-    contractor: 97,
-    score: 95,
-    status: "Approved",
-    progress: 80,
-    created: "2026-10-12",
-  },
-  {
-    id: "SC-2026-005",
-    name: "Surabaya Modern",
-    borrower: "Budi Wijaya",
-    location: "Darmo, Surabaya",
-    amount: 1750,
-    value: 2800,
-    income: 70,
-    debt: 12,
-    months: 84,
-    contractor: 86,
-    score: 84,
-    status: "In review",
-    progress: 55,
-    created: "2026-10-11",
-  },
-  {
-    id: "SC-2026-006",
-    name: "Bandung Courtyard",
-    borrower: "Nadia Rahman",
-    location: "Dago, Bandung",
-    amount: 920,
-    value: 1900,
-    income: 50,
-    debt: 4,
-    months: 60,
-    contractor: 92,
-    score: 91,
-    status: "Approved",
-    progress: 62,
-    created: "2026-10-10",
-  },
-  {
-    id: "SC-2026-007",
-    name: "Canggu Studio",
-    borrower: "Andre Saputra",
-    location: "Canggu, Bali",
-    amount: 1100,
-    value: 1300,
-    income: 30,
-    debt: 12,
-    months: 60,
-    contractor: 60,
-    score: 48,
-    status: "Rejected",
-    progress: 0,
-    created: "2026-10-09",
-  },
-];
-const storageKey = "renovacredit-v3";
-let storageAvailable = true;
-function load() {
-  try {
-    const data = JSON.parse(
-      localStorage.getItem(storageKey) ||
-        localStorage.getItem("secha-credit-v2"),
-    );
-    if (
-      data &&
-      Array.isArray(data.apps) &&
-      data.apps.length &&
-      data.apps.every(
-        (a) =>
-          typeof a.id === "string" &&
-          typeof a.name === "string" &&
-          Number.isFinite(a.amount) &&
-          a.amount > 0 &&
-          Number.isFinite(a.score) &&
-          ["In review", "Approved", "Pending docs", "Rejected"].includes(
-            a.status,
-          ),
-      )
-    )
-      return data;
-  } catch {}
-  return {
-    apps: structuredClone(defaults),
-    activity: [],
-    settings: {
-      name: "Alex Morgan",
-      email: "alex@example.com",
-      notifications: true,
-    },
-    milestones: [],
-  };
-}
-let data = load();
-data.activity = Array.isArray(data.activity) ? data.activity : [];
-data.settings = data.settings || {
-  name: "Alex Morgan",
-  email: "alex@example.com",
-  notifications: true,
-};
-data.milestones = Array.isArray(data.milestones) ? data.milestones : [];
-data.policy = { ...renovaDefaultPolicy, ...data.policy };
-data.apps.forEach((a, i) => {
-  a.property = a.property || propertyDefaults(a, i, true);
-  a.score = assess(a).score;
-});
-const state = {
-  page: "dashboard",
-  filter: "All applications",
+const rupiah = (n) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n);
+const compact = (n) =>
+  `${n < 0 ? "−" : ""}Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(Math.abs(n) / 1000000)}<small> jt</small>`;
+const shortMoney = (n) =>
+  `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(n / 1000000)} jt`;
+const when = (t) =>
+  new Date(t).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  });
+let store = rcLoad();
+let ui = {
+  page: "overview",
+  caseId: "RC-026",
+  tab: "scope",
+  role: "reviewer",
   query: "",
-  range: "6m",
-  period: "month",
-  pagination: 1,
-  role: "bank",
-  audience: "bank",
-  intelligenceProject: defaults[0].id,
+  filter: "All cases",
   menu: false,
   notifications: false,
-  selectedProject: defaults[3].id,
+  language: "en",
 };
-let modalOpener = null,
-  toastTimer;
+let opener = null,
+  toastTimer,
+  persistent = true;
+const pages = {
+  overview: "Overview",
+  cases: "Cases",
+  claims: "Claims & payments",
+  evidence: "Evidence inbox",
+  activity: "Activity",
+  settings: "Workspace settings",
+  case: "Case workspace",
+};
+function activeCase() {
+  return store.cases.find((c) => c.id === ui.caseId) || store.cases[0];
+}
 function save() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(data));
+    localStorage.setItem(RC_STORE, JSON.stringify(store));
   } catch {
-    storageAvailable = false;
-    toast("Browser storage unavailable. Changes last for this session only.");
+    persistent = false;
+    notify("Storage unavailable. Changes will last for this session only.");
   }
 }
-function toast(message) {
-  const el = document.querySelector("#toast");
-  el.textContent = message;
-  el.classList.add("visible");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("visible"), 4200);
-}
-function record(message, project) {
-  data.activity.unshift({ message, project, time: today() });
-  data.activity = data.activity.slice(0, 20);
+function log(c, message, detail = "") {
+  rcEvent(c, RC_ROLES[ui.role].name, message, detail);
   save();
 }
-const badge = (s) =>
-  `<span class="badge ${s === "Approved" ? "approved" : s === "In review" ? "review" : s === "Rejected" ? "rejected" : "pending"}">${escapeHTML(s)}</span>`;
-const scoreHTML = (s) =>
-  `<span class="score ${s < 60 ? "low" : s < 80 ? "medium" : ""}"><i></i>${s}<span class="muted" style="font-size:8px">/100</span></span>`;
-const button = (label, action, ico = "", primary = false) =>
-  `<button class="btn ${primary ? "primary" : ""}" data-action="${action}">${ico ? icon(ico, 14) : ""}${label}</button>`;
-const names = {
-  dashboard: "Overview",
-  applications: "Applications",
-  portfolio: "Portfolio",
-  engine: "Credit simulator",
-  intelligence: "Property intelligence",
-  passport: "Renovation passport",
-  policy: "Lending policy",
-  milestones: "Disbursements",
-  reports: "Reports",
-  settings: "Settings",
-  borrower: "My project",
-};
+function notify(text) {
+  const el = document.querySelector("#toast");
+  el.textContent = text;
+  el.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("visible"), 4500);
+}
+function badge(text) {
+  let kind = /accepted|active|ready|reviewed|reconciled|paid|complete/i.test(
+    text,
+  )
+    ? "sage"
+    : /missing|correction|stale|hold|disputed/i.test(text)
+      ? "clay"
+      : /awaiting|review|submitted|draft|received|pending|requested|conditional/i.test(
+            text,
+          )
+        ? "sand"
+        : "neutral";
+  if (text === "Partially paid") kind = "sand";
+  return `<span class="badge ${kind}"><i></i>${esc(text)}</span>`;
+}
+function btn(text, action, icon = "", primary = false, more = "") {
+  return `<button class="btn ${primary ? "primary" : ""}" data-action="${action}" ${more}>${icon ? ico(icon, 15) : ""}${text}</button>`;
+}
 function navigate(page) {
-  state.page = page;
-  state.menu = false;
-  state.notifications = false;
-  state.query = "";
-  state.filter = "All applications";
-  state.pagination = 1;
+  ui.page = page;
+  ui.menu = false;
+  ui.notifications = false;
+  ui.query = "";
   render();
   window.scrollTo(0, 0);
-  document.title = `${names[page]} · RenovaCredit`;
+}
+function openCase(id, tab = "scope") {
+  ui.caseId = id;
+  ui.tab = tab;
+  navigate("case");
+  document.title = `${activeCase().name} · RenovaCredit`;
+}
+function heading(title, sub, actions = "") {
+  return `<div class="heading"><div><div class="eyebrow">RENOVATION FINANCE WORKSPACE</div><h1>${title}</h1><p>${sub}</p></div><div class="heading-actions">${actions}</div></div>`;
 }
 function render() {
-  const review = data.apps.filter((a) => a.status === "In review").length;
+  const role = RC_ROLES[ui.role],
+    pending = store.cases.reduce((s, c) => s + rcReadiness(c).docs.length, 0);
   document.querySelector("#app").innerHTML =
-    `${state.menu ? '<div class="mobile-scrim" data-action="menu"></div>' : ""}
-<aside class="sidebar ${state.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-action="home"><img src="assets/renovacredit-mark.svg" alt=""><div><div class="brand-name">renova<span>credit</span></div><div class="brand-caption">BY SECHA · PROPERTY INTELLIGENCE</div></div></a>
-<div class="workspace"><div class="workspace-icon">${icon("building", 16)}</div><div><strong>Indonesia workspace</strong><small>Renovation & secondary property</small></div><span style="margin-left:auto;color:#a99a8d">${icon("down", 13)}</span></div>
-<div class="nav-label">WORKSPACE</div><nav>${(state.role === "bank"
-      ? [
-          ["dashboard", "grid"],
-          ["applications", "file"],
-          ["portfolio", "layers"],
-          ["intelligence", "shield"],
-          ["engine", "chart"],
-          ["passport", "file"],
-          ["milestones", "wallet"],
-          ["reports", "chart"],
-        ]
-      : [
-          ["borrower", "building"],
-          ["intelligence", "shield"],
-          ["engine", "chart"],
-          ["passport", "file"],
-          ["milestones", "wallet"],
-        ]
-    )
+    `${ui.menu ? '<button class="scrim" data-action="menu" aria-label="Close navigation"></button>' : ""}<aside class="sidebar ${ui.menu ? "open" : ""}" aria-label="Main navigation"><a class="brand" href="#" data-page="overview"><img src="assets/renovacredit-mark.svg" alt=""><div><strong>renova<span>credit</span></strong><small>BY SECHA · SPACE TO GROW</small></div></a><div class="workspace-picker"><span class="workspace-symbol">${ico("home", 17)}</span><div><strong>Renovation workspace</strong><small>Jabodetabek · Demo</small></div>${ico("down", 12)}</div><div class="nav-label">WORKSPACE</div><nav>${[
+      ["overview", "grid"],
+      ["cases", "layers"],
+      ["claims", "wallet"],
+      ["evidence", "file"],
+      ["activity", "history"],
+    ]
       .map(
-        ([p, i]) =>
-          `<button data-page="${p}" class="nav-item ${state.page === p ? "active" : ""}" ${state.page === p ? 'aria-current="page"' : ""}>${icon(i)}${names[p]}${p === "applications" ? `<span class="nav-count">${review}</span>` : ""}</button>`,
+        ([id, i]) =>
+          `<button class="nav-item ${ui.page === id || (ui.page === "case" && id === "cases") ? "active" : ""}" data-page="${id}" ${ui.page === id ? 'aria-current="page"' : ""}>${ico(i)}${pages[id]}${id === "cases" ? `<span>${String(store.cases.length).padStart(2, "0")}</span>` : id === "evidence" ? `<span>${pending}</span>` : ""}</button>`,
       )
-      .join("")}</nav>
-<div class="sidebar-bottom"><button class="nav-item ${state.page === "settings" ? "active" : ""}" data-page="settings">${icon("settings")}Settings</button><div class="help-card pitch-help"><div class="flex gap">${icon("leaf", 16)}<strong style="font-size:11px;font-weight:500">See the potential. Fund it better.</strong></div><p>One property. A complete picture. From first assessment to final handover.</p><button data-action="guide">Explore the workspace ${icon("up", 12)}</button></div><button class="profile" style="width:100%;text-align:left" data-page="settings"><div class="avatar">${escapeHTML(
-      (data.settings.name || "Alex Morgan")
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2),
-    )}</div><div><strong>${escapeHTML(data.settings.name)}</strong><small>${state.role === "bank" ? "Credit operations" : "Borrower workspace"}</small></div>${icon("down", 13)}</button></div></aside>
-<div class="main-shell"><header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${state.menu}">${icon("menu", 17)}</button><div class="breadcrumb">RenovaCredit ${icon("right", 10)}<strong>${names[state.page]}</strong><span class="prototype">PROTOTYPE</span></div><div class="top-actions"><label class="search-box">${icon("search", 14)}<input id="global-search" aria-label="Search applications" placeholder="Search anything…" value="${escapeHTML(state.query)}"><span class="key">⌘ K</span></label><button class="icon-button" data-action="notifications" aria-label="Notifications" aria-expanded="${state.notifications}">${icon("bell", 16)}${data.settings.notifications ? '<i class="notification-dot"></i>' : ""}</button><div class="top-divider"></div><button class="avatar" aria-label="Account settings" data-page="settings">${escapeHTML(
-      (data.settings.name || "Alex Morgan")
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2),
-    )}</button></div>${state.notifications ? `<section class="panel notification-panel" aria-label="Notifications"><div class="between"><h3>Workspace updates</h3><button data-action="notifications" aria-label="Close notifications">${icon("close", 14)}</button></div><p>${review} applications are waiting for credit review.</p><p>${data.apps.filter((a) => a.status === "Pending docs").length} application needs supporting documents.</p><button class="text-btn" data-page="applications">Open application queue ${icon("arrow", 13)}</button></section>` : ""}</header>
-<main id="main-content" class="content" tabindex="-1">${audienceBar()}${view()}<footer class="bottom-note"><span>${icon("shield", 12)} Planning prototype · Human review required</span><span class="live">Local workspace${storageAvailable ? " saved" : ""}</span></footer></main></div>`;
-}
-function heading(title, desc, actions = "") {
-  return `<div class="page-heading"><div><h1>${title}</h1><p>${desc}</p></div><div class="heading-actions">${actions}</div></div>`;
+      .join(
+        "",
+      )}</nav><div class="sidebar-bottom"><div class="pilot-card"><span class="pilot-icon">${ico("leaf", 19)}</span><strong>Good plans.<br>Better outcomes.</strong><p>One clear picture, from the first quote to the final handover.</p><button data-action="walkthrough">Explore the demo ${ico("up", 13)}</button></div><button class="nav-item" data-page="settings">${ico("settings")}Workspace settings</button><button class="profile" data-action="perspective"><span class="avatar">${role.initials}</span><div><strong>${role.name}</strong><small>${role.label} · demo</small></div>${ico("down", 12)}</button></div></aside><div class="shell"><header class="topbar"><button class="icon-btn mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="${ui.menu}">${ico("menu", 18)}</button><div class="breadcrumb">Workspace ${ico("right", 12)}<strong>${ui.page === "case" ? esc(activeCase().id) : pages[ui.page]}</strong><span class="demo-tag">INTERACTIVE DEMO</span></div><div class="top-actions"><label class="global-search">${ico("search", 15)}<input id="global-search" placeholder="Find a project…" aria-label="Find a project"><kbd>⌘ K</kbd></label><button class="icon-btn" data-action="notifications" aria-label="Workspace updates" aria-expanded="${ui.notifications}">${ico("bell", 17)}<i class="notification-dot"></i></button><button class="avatar small" data-action="perspective" aria-label="Change demo perspective">${role.initials}</button></div>${ui.notifications ? `<section class="notification-menu panel"><h3>Needs your attention</h3><p>${pending} evidence records need review or correction.</p><button class="text-link" data-page="evidence">Open evidence inbox ${ico("arrow", 14)}</button></section>` : ""}</header><main id="main-content" tabindex="-1"><div class="workspace-context"><span class="country"><i></i>INDONESIA <b>/</b> Existing-home renovation</span><button class="perspective" data-action="perspective">${ico("eye", 13)}${role.label} view ${ico("down", 11)}</button></div>${view()}<footer><span>${ico("shield", 12)}Fictional cases · No bank connection or money movement</span><span><i></i>${persistent ? "Saved in this browser" : "Session only"}</span></footer></main></div>`;
 }
 function view() {
-  switch (state.page) {
-    case "applications":
-      return applications();
-    case "portfolio":
-      return portfolio();
-    case "engine":
-      return engine();
-    case "intelligence":
-      return intelligenceView();
-    case "passport":
-      return passportView();
-    case "policy":
-      return policyView();
-    case "milestones":
-      return milestones();
-    case "reports":
-      return reports();
-    case "settings":
-      return settings();
-    case "borrower":
-      return borrower();
-    default:
-      return dashboard();
-  }
+  if (ui.page === "case") return caseView();
+  if (ui.page === "cases") return casesView();
+  if (ui.page === "claims") return claimsView();
+  if (ui.page === "evidence") return evidenceInbox();
+  if (ui.page === "activity") return activityView();
+  if (ui.page === "settings") return settingsView();
+  return overview();
 }
-function metrics() {
-  const active = data.apps.filter((a) => a.status === "Approved");
-  const total = active.reduce((s, a) => s + a.amount, 0);
-  const reviewed = data.apps.filter((a) =>
-    ["Approved", "Rejected"].includes(a.status),
-  );
-  const rate = reviewed.length
-    ? Math.round((active.length / reviewed.length) * 100)
-    : 0;
-  const average = Math.round(
-    data.apps.reduce((s, a) => s + propertyAnalysis(a).renovaScore, 0) /
-      data.apps.length,
-  );
-  const items = [
-    [
-      "Active portfolio",
-      money(total),
-      "wallet",
-      "Approved book",
-      "committed",
-      [30, 25, 27, 18, 21, 10, 12, 3],
-    ],
-    [
-      "Applications",
-      String(data.apps.length).padStart(2, "0"),
-      "file",
-      `${data.apps.filter((a) => a.status === "In review").length} in review`,
-      "in workspace",
-      [28, 22, 26, 18, 19, 12, 17, 4],
-    ],
-    [
-      "Approval rate",
-      `${rate}<small>%</small>`,
-      "check",
-      `${active.length} approved`,
-      "of decided",
-      [23, 26, 19, 21, 12, 15, 9, 3],
-    ],
-    [
-      "Average RenovaScore",
-      `${average}<small> / 100</small>`,
-      "shield",
-      "Rule-based",
-      "demo model",
-      [30, 26, 28, 19, 22, 14, 10, 5],
-    ],
-  ];
-  return `<div class="metrics">${items.map(([l, v, i, c, t, points]) => `<section class="panel metric"><div class="metric-label">${l}${icon(i, 15)}</div><div class="metric-value mono">${v}</div><div class="metric-bottom"><span class="metric-change">${icon("trend", 11)}${c}</span>${t}</div><div class="metric-spark"><svg viewBox="0 0 75 35" aria-hidden="true"><path d="M0 ${points[0]} ${points.map((y, i) => `L${i * 10 + 3} ${y}`).join(" ")}" fill="none" stroke="#aa9b8e" stroke-width="1.5"/></svg></div></section>`).join("")}</div>`;
+function stat(label, value, icon, note, variant = "") {
+  return `<section class="stat panel ${variant}"><div class="stat-label">${label}<span>${ico(icon, 16)}</span></div><strong>${value}</strong><p>${note}</p></section>`;
 }
-function dashboard() {
-  return `${heading("A new perspective on property.", "Discover potential. Finance the transformation.", button("Export report", "export", "download") + button("New application", "new", "plus", true))}
- ${pitchHero()}${pitchMetrics()}
- ${state.audience === "institution" ? institutionSummary() : ""}
- <div class="pitch-bottom">${state.audience === "investor" ? opportunityComparison() : `<section class="panel pitch-pipeline"><div class="panel-header"><div><span class="eyebrow pitch-eyebrow">THE PROJECTS</span><h2>Your renovation pipeline</h2></div><button class="text-btn" data-page="applications">View all ${icon("arrow", 14)}</button></div>${applicationTable(true)}</section>`}<section class="panel pitch-journey"><span class="eyebrow pitch-eyebrow">THE RENOVACREDIT WAY</span><h2>From potential<br>to possibility.</h2><p>One shared picture. At every step.</p>${[
-   ["01", "Understand the property", "intelligence", "building"],
-   ["02", "Build a financing case", "passport", "file"],
-   ["03", "Track the transformation", "milestones", "layers"],
- ]
-   .map(
-     ([n, l, p, i]) =>
-       `<button class="journey-step" data-page="${p}"><span>${n}</span><div>${icon(i, 17)}${l}</div>${icon("right", 13)}</button>`,
-   )
-   .join(
-     "",
-   )}<div class="journey-foot">${icon("leaf", 14)}Built for Indonesia. Designed for better homes.</div></section></div>`;
-}
-function chart() {
-  const sets = {
-    "3m": { labels: ["Aug", "Sep", "Oct"], d: [8, 14, 20], r: [5, 8, 12] },
-    "6m": {
-      labels: ["May", "Jun", "Jul", "Aug", "Sep", "Oct"],
-      d: [4, 8, 7, 13, 12, 20],
-      r: [2, 5, 4, 8, 8, 12],
-    },
-    "1y": {
-      labels: ["Nov", "Jan", "Mar", "May", "Jul", "Oct"],
-      d: [2, 4, 6, 8, 14, 24],
-      r: [1, 2, 4, 5, 9, 15],
-    },
-  };
-  const set = sets[state.range];
-  const points = (vals) =>
-    vals.map((v, i) => [45 + (i * 490) / (vals.length - 1), 160 - v * 5.5]);
-  function line(vals) {
-    const p = points(vals);
-    return p.reduce(
-      (s, [x, y], i) =>
-        i
-          ? s + ` C${p[i - 1][0] + 45} ${p[i - 1][1]} ${x - 45} ${y} ${x} ${y}`
-          : `M${x} ${y}`,
-      "",
-    );
-  }
-  return `<div class="chart"><svg role="img" aria-label="Illustrative capital chart over ${state.range}: disbursed rises from ${set.d[0]} to ${set.d.at(-1)} billion rupiah" viewBox="0 0 570 195" preserveAspectRatio="none"><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#e5d9cd" stop-opacity=".6"/><stop offset="1" stop-color="#f1ece5" stop-opacity=".05"/></linearGradient></defs>${[0, 5, 10, 15, 20, 25].map((v) => `<line class="grid" x1="45" x2="535" y1="${160 - v * 5.5}" y2="${160 - v * 5.5}"/><text x="5" y="${164 - v * 5.5}">${v}</text>`).join("")}<path d="${line(set.d)} L535 160 L45 160 Z" fill="url(#chart-fill)"/><path d="${line(set.r)}" stroke="#d4c0ab" stroke-width="2" fill="none" stroke-dasharray="5 4"/><path d="${line(set.d)}" stroke="#78685a" stroke-width="2.3" fill="none"/>${points(
-    set.d,
-  )
+function overview() {
+  const attention = store.cases
+    .filter((c) => c.next && c.status !== "Closed")
+    .sort((a, b) => a.due.localeCompare(b.due));
+  const evidence = store.cases.filter(
+    (c) => rcReadiness(c).docs.length > 0,
+  ).length;
+  const gap = store.cases.reduce((s, c) => s + rcFinance(c).gap, 0);
+  const claims = store.cases.filter(
+    (c) => c.claim && c.claim.status !== "Reconciled",
+  ).length;
+  return `${heading(ui.role === "owner" ? "Your renovation, one step clearer." : "A little clarity. A lot of progress.", ui.role === "owner" ? "Know your budget, what to prepare, and what happens next." : "A clear view of your cases, outstanding evidence, and the next decision.", btn("How it works", "walkthrough", "info") + btn("New case", "new-case", "plus", true))}<div class="summary-label"><span><i></i>PILOT WORKSPACE OVERVIEW</span><small>Sample cases · amounts in IDR</small></div><div class="stats">${stat("Active cases", String(store.cases.length).padStart(2, "0"), "home", "Across one demo workspace")}${stat("Awaiting evidence", String(evidence).padStart(2, "0"), "file", "Cases with open evidence checks")}${stat("Uncommitted funding gap", compact(gap), "wallet", "Known costs less cash & usable facility")}${stat("Claims to review", String(claims).padStart(2, "0"), "layers", "Certification is separate from payment", "tinted")}</div><div class="overview-grid"><section class="panel action-panel"><div class="panel-header"><div><span class="eyebrow">THE NEXT RIGHT STEP</span><h2>Needs your attention <span class="count-pill">${attention.length}</span></h2></div><button class="text-link" data-page="cases">All cases ${ico("arrow", 14)}</button></div><div class="action-list">${attention
+    .slice(0, 4)
     .map(
-      ([x, y], i) =>
-        `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="#78685a" stroke-width="2"><title>${set.labels[i]}: disbursed Rp ${set.d[i]}B, repaid Rp ${set.r[i]}B</title></circle>`,
+      (c, i) =>
+        `<button class="action-item" data-case="${c.id}" data-tab="${c.claim ? "changes" : i === 2 ? "evidence" : "scope"}"><span class="case-icon ${c.claim ? "sage" : ""}">${ico(c.claim ? "wallet" : i === 2 ? "file" : "home", 19)}</span><span class="action-copy"><strong>${esc(c.next)}</strong><span>${esc(c.name)} <i>·</i> ${esc(c.id)}</span><small><span class="person-dot">${c.assignee
+          .split(" ")
+          .map((x) => x[0])
+          .join(
+            "",
+          )}</span>${esc(c.assignee)} <i>·</i> Due ${new Date(c.due + "T00:00:00+07:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Jakarta" })}</small></span>${badge(c.claim ? "Claim review" : rcReadiness(c).docs.length ? "Evidence needed" : "Budget review")}<span class="row-arrow">${ico("arrow", 15)}</span></button>`,
     )
     .join(
       "",
-    )}${set.labels.map((v, i) => `<text text-anchor="middle" x="${45 + (i * 490) / (set.labels.length - 1)}" y="185">${v}</text>`).join("")}</svg><div class="chart-tooltip">${set.labels.at(-1)} · Illustrative<br>Disbursed <strong>Rp ${set.d.at(-1)}B</strong><br>Repaid <strong>Rp ${set.r.at(-1)}B</strong></div></div>`;
-}
-function health() {
-  const creditOK = (a) => {
-    const r = assess(a);
-    return (
-      r.ltv <= data.policy.maxLtv &&
-      r.dsr <= data.policy.maxDsr &&
-      r.score >= data.policy.minScore
-    );
-  };
-  const ready = data.apps.filter(
-    (a) => creditOK(a) && approvalReasons(a).length === 0,
-  ).length;
-  const evidence = data.apps.filter(
-    (a) => creditOK(a) && approvalReasons(a).length > 0,
-  ).length;
-  const flagged = data.apps.length - ready - evidence;
-  const percent = Math.round((ready / data.apps.length) * 100);
-  const items = [
-    ["Within policy", ready, "#776759"],
-    ["Evidence gaps", evidence, "#d1bb7e"],
-    ["Policy flags", flagged, "#e2d4c6"],
-  ];
-  let offset = 0;
-  return `<section class="panel health-panel"><div class="panel-header"><div><h2>Decision readiness</h2><p class="sub">Current credit policy & evidence gates</p></div>${icon("info", 14)}</div><div class="health-body"><div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${percent}% of applications pass current demo credit and evidence gates"><circle cx="60" cy="60" r="49" stroke="#f4f0eb" stroke-width="11" fill="none"/>${items
-    .map(([, n, c]) => {
-      const len = (n / data.apps.length) * 307.88;
-      const svg = `<circle cx="60" cy="60" r="49" stroke="${c}" stroke-width="11" fill="none" stroke-dasharray="${Math.max(0, len - 4)} ${307.88 - Math.max(0, len - 4)}" stroke-dashoffset="${-offset}"/>`;
-      offset += len;
-      return svg;
-    })
+    )}</div><div class="panel-foot">One owner. One next action. A clearer path forward.</div></section>${focusCard()}<section class="panel case-list-panel"><div class="panel-header"><div><span class="eyebrow">FROM PLAN TO PROGRESS</span><h2>Your renovation cases</h2></div><button class="text-link" data-page="cases">View all ${ico("arrow", 14)}</button></div>${caseTable(store.cases.slice(0, 4))}</section><section class="panel journey-panel"><span class="eyebrow">THE RENOVACREDIT WAY</span><h2>Evidence first.<br>Confidence follows.</h2><p>Every number has a source.<br>Every decision has a next step.</p>${[
+    ["01", "Review the scope", "scope", "file"],
+    ["02", "Understand the funding", "funding", "wallet"],
+    ["03", "Connect work to payment", "changes", "layers"],
+  ]
+    .map(
+      ([n, l, t, i]) =>
+        `<button data-case="RC-026" data-tab="${t}"><small>${n}</small>${ico(i, 15)}<span>${l}</span>${ico("right", 12)}</button>`,
+    )
     .join(
       "",
-    )}</svg><div class="donut-center"><strong>${percent}<span style="font-size:16px">%</span></strong><small>Within demo policy</small></div></div><div class="legend">${items.map(([n, v, c]) => `<div class="legend-row"><i style="background:${c}"></i>${n}<strong>${v}</strong></div>`).join("")}</div></div><div class="health-note">${icon("shield", 13)}Current gates only · Independent verification required</div></section>`;
+    )}<span class="journey-note">${ico("leaf", 13)}Better homes start with better information.</span></section></div>`;
 }
-function filters() {
-  return `<div class="table-toolbar"><div class="flex" style="gap:3px">${["All applications", "In review", "Approved"].map((s) => `<button class="filter ${state.filter === s ? "active" : ""}" data-filter="${s}" aria-pressed="${state.filter === s}">${s}<span class="count">${s === "All applications" ? data.apps.length : data.apps.filter((a) => a.status === s).length}</span></button>`).join("")}</div></div>`;
+function focusCard() {
+  const c = store.cases.find((x) => x.id === "RC-026") || store.cases[0],
+    f = rcFinance(c),
+    r = rcReadiness(c);
+  return `<section class="focus-card"><div class="between"><span class="eyebrow">CASE SPOTLIGHT</span>${ico("home", 18)}</div><h2>${esc(c.name)}</h2><p>${esc(c.location)} · ${esc(c.owner)}</p><div class="focus-money"><span>Known project cost</span><strong>${compact(f.total)}</strong><small>Construction, contingency & known fees</small></div><div class="focus-split"><div><span>Owner cash</span><strong>${shortMoney(c.cash)}</strong></div><div><span>Funding gap</span><strong>${shortMoney(f.gap)}</strong></div></div><div class="focus-status"><span>${r.docs.length} evidence check${r.docs.length === 1 ? "" : "s"} to resolve</span><span>Budget v${c.version}</span></div><button class="btn" data-case="${c.id}" data-tab="funding">Open the case ${ico("arrow", 15)}</button><small class="focus-disclaimer">A funding gap is not a loan approval.</small></section>`;
 }
-function filteredApps() {
-  return data.apps.filter(
-    (a) =>
-      (state.filter === "All applications" || a.status === state.filter) &&
-      [a.name, a.id, a.location, a.borrower].some((v) =>
-        String(v).toLowerCase().includes(state.query.toLowerCase()),
+function caseTable(cases) {
+  return `<div class="table-scroll"><table><thead><tr><th>Project</th><th>Known cost</th><th>Funding gap</th><th>Stage</th><th>Next</th></tr></thead><tbody>${cases.map((c) => `<tr><td><button class="project-link" data-case="${c.id}"><span class="case-icon mini">${ico("home", 15)}</span><span><strong>${esc(c.name)}</strong><small>${esc(c.location)} · v${c.version}</small><small class="mobile-case-meta">${rcFinance(c).gap ? `Gap ${shortMoney(rcFinance(c).gap)}` : "Funding covered"} · ${rcReadiness(c).docs.length} evidence checks</small></span></button></td><td>${shortMoney(rcFinance(c).total)}${c.unknownCosts.length ? '<small class="table-note">Unpriced items</small>' : ""}</td><td><span class="gap-value ${rcFinance(c).gap === 0 ? "zero" : ""}">${rcFinance(c).gap ? shortMoney(rcFinance(c).gap) : "Covered"}</span></td><td>${badge(c.status)}</td><td><button class="icon-btn" data-case="${c.id}" aria-label="Open ${esc(c.name)}">${ico("arrow", 14)}</button></td></tr>`).join("") || '<tr><td colspan="5" class="empty">No cases match this search.</td></tr>'}</tbody></table></div>`;
+}
+function filteredCases() {
+  return store.cases.filter(
+    (c) =>
+      (ui.filter === "All cases" ||
+        (ui.filter === "Needs attention" &&
+          (!rcReadiness(c).accepted || rcReadiness(c).docs.length)) ||
+        (ui.filter === "Active renovation" && c.facilityActive)) &&
+      [c.name, c.id, c.owner, c.location].some((v) =>
+        v.toLowerCase().includes(ui.query.toLowerCase()),
       ),
   );
 }
-function applicationTable(compact = false) {
-  const rows = filteredApps();
-  const perPage = compact ? 3 : 8;
-  const pages = Math.max(1, Math.ceil(rows.length / perPage));
-  state.pagination = Math.min(state.pagination, pages);
-  const start = (state.pagination - 1) * perPage;
-  return `<div class="table-scroll"><table><thead><tr><th>Project / borrower</th><th>Loan amount</th><th>Credit score</th><th>Status</th><th><span class="muted">Review</span></th></tr></thead><tbody>${
-    rows
-      .slice(start, start + perPage)
-      .map(
-        (a) =>
-          `<tr><td><div class="project-cell"><span class="project-icon">${icon("building", 16)}</span><div><strong>${escapeHTML(a.name)}</strong><small>${escapeHTML(a.location)}</small></div></div></td><td class="mono" style="font-weight:500">${money(a.amount)}</td><td>${scoreHTML(a.score)}</td><td>${badge(a.status)}</td><td><button class="icon-button" data-review="${escapeHTML(a.id)}" aria-label="Review ${escapeHTML(a.name)}">${icon("right", 12)}</button></td></tr>`,
+function casesView() {
+  return `${heading("Every case, in clearer focus.", "Scope, evidence, and funding progress in one shared place.", btn("New case", "new-case", "plus", true))}<section class="panel"><div class="list-toolbar"><div class="filter-tabs">${["All cases", "Needs attention", "Active renovation"].map((f) => `<button data-filter="${f}" class="${ui.filter === f ? "active" : ""}" aria-pressed="${ui.filter === f}">${f}</button>`).join("")}</div><label class="local-search">${ico("search", 15)}<input id="case-search" placeholder="Search project or owner…" aria-label="Search cases" value="${esc(ui.query)}"></label></div><div id="case-results">${caseTable(filteredCases())}</div><div class="panel-foot">Shared fictional dataset · Perspective switching is not authentication.</div></section>`;
+}
+function caseView() {
+  const c = activeCase(),
+    r = rcReadiness(c);
+  const tabs = [
+    ["scope", "Scope & budget"],
+    ["funding", "Funding plan"],
+    ["evidence", "Evidence"],
+    ["changes", "Changes & claims"],
+    ["history", "History"],
+  ];
+  return `<button class="back-link" data-page="cases">${ico("left", 13)}All cases</button><div class="case-heading"><div><div class="eyebrow">${esc(c.id)} <span>·</span> ${esc(c.location)}</div><h1>${esc(c.name)}</h1><p>${esc(c.owner)} <span>·</span> Existing-home renovation <span>·</span> ${esc(c.assignee)}</p></div><div class="heading-actions">${badge(c.status)}${btn("Export packet", "export-packet", "download")}</div></div><div class="case-ribbon"><span>${ico("layers", 14)}Budget v${c.version} ${r.accepted ? '<b class="sage-text">Reviewed baseline</b>' : "<b>Review in progress</b>"}</span><span>${ico("clock", 14)}Next: ${esc(c.next)}</span></div><div class="case-tabs" role="tablist" aria-label="Case sections">${tabs.map(([id, t]) => `<button role="tab" id="tab-${id}" aria-selected="${ui.tab === id}" aria-controls="case-tab-panel" tabindex="${ui.tab === id ? "0" : "-1"}" class="${ui.tab === id ? "active" : ""}" data-tab="${id}">${t}${id === "evidence" && r.docs.length ? `<i>${r.docs.length}</i>` : ""}</button>`).join("")}</div><div id="case-tab-panel" role="tabpanel" aria-labelledby="tab-${ui.tab}">${ui.tab === "funding" ? fundingTab(c) : ui.tab === "evidence" ? evidenceTab(c) : ui.tab === "changes" ? changesTab(c) : ui.tab === "history" ? historyTab(c) : scopeTab(c)}</div>`;
+}
+function scopeTab(c) {
+  const r = rcReadiness(c),
+    f = rcFinance(c);
+  return `<div class="case-grid"><section class="panel budget-panel"><div class="panel-header"><div><span class="eyebrow">RENCANA ANGGARAN BIAYA</span><h2>The scope behind the numbers</h2><p>Itemized work, with a source for every line.</p></div><div class="heading-actions">${btn("View quote", "quote", "file")}${btn("Add line", "add-line", "plus", false, ui.role !== "reviewer" ? "disabled" : "")}</div></div><div class="budget-meta"><span>${ico("file", 13)}RAB-${esc(c.id)}.pdf <b>·</b> Quote v${c.documents.find((d) => d.id === "quote")?.version || 1}</span><span>${r.lineCount ? `${r.lineCount} line${r.lineCount === 1 ? "" : "s"} to review` : "All scope lines reviewed"}</span></div><div class="table-scroll"><table class="budget-table"><thead><tr><th>Work item / source</th><th>Quantity</th><th>Unit rate</th><th>Amount</th><th>Review</th></tr></thead><tbody>${c.lines.map((l) => `<tr><td><strong>${esc(l.label)}</strong><small>${esc(l.spec)}</small><button class="source-link" data-source="${l.id}">${ico("link", 11)}${esc(l.source)}</button></td><td>${new Intl.NumberFormat("id-ID").format(l.quantity)} <small>${esc(l.unit)}</small></td><td>${shortMoney(l.rate)}</td><td><strong>${shortMoney(Math.round(l.quantity * l.rate))}</strong></td><td><button class="review-line ${l.reviewed ? "reviewed" : ""}" data-line="${l.id}" ${!rcCanReview(ui.role) ? "disabled" : ""} aria-label="Review ${esc(l.label)}">${ico(l.reviewed ? "check" : "edit", 14)}${l.reviewed ? "Reviewed" : "Review"}</button></td></tr>`).join("")}</tbody></table></div><div class="budget-total"><span>Construction subtotal</span><strong>${rupiah(f.construction)}</strong></div><div class="budget-note">${ico("info", 14)}Original and revised values remain in case history. All sources here are illustrative.</div></section><div class="right-stack"><section class="panel summary-card"><span class="eyebrow">BUDGET SNAPSHOT</span><h2>What it takes to finish.</h2><div class="summary-amount">${compact(f.total)}</div><p>Known cost floor${!f.known ? " · unpriced items remain" : ""}</p><div class="cost-row"><span>Construction</span><strong>${shortMoney(f.construction)}</strong></div><div class="cost-row"><span>Contingency · ${c.contingency}%</span><strong>${shortMoney(f.reserve)}</strong></div><div class="cost-row"><span>Known fees</span><strong>${shortMoney(c.fees)}</strong></div><div class="summary-footer">${badge(r.accepted ? "Reviewed" : "Review in progress")}<span>Budget v${c.version}</span></div><button class="btn primary full" data-action="accept-budget" ${!rcCanReview(ui.role) || r.lineCount || r.accepted || !f.known ? "disabled" : ""}>${ico("check", 15)}${r.accepted ? "Budget baseline reviewed" : "Accept reviewed budget"}</button><small class="helper">Budget acceptance confirms a demo review. Credit approval remains separate.</small></section><section class="note-card"><span class="note-icon">${ico("shield", 18)}</span><h3>A source, not a score.</h3><p>This case shows what is known, what needs review, and what could change. No valuation uplift or prediction is used to approve it.</p></section></div></div>`;
+}
+function fundingTab(c) {
+  const f = rcFinance(c);
+  return `<div class="case-grid"><section class="panel funding-panel"><div class="panel-header"><div><span class="eyebrow">SOURCES & USES</span><h2>Know the gap before work begins.</h2><p>Property value is not counted as available cash.</p></div>${btn("Edit assumptions", "edit-funding", "edit")}</div><div class="funding-equation"><div><span>Known project cost</span><strong>${compact(f.total)}</strong></div><b>−</b><div><span>Owner cash</span><strong>${compact(c.cash)}</strong></div><b>−</b><div><span>Usable facility</span><strong>${compact(f.committed)}</strong></div><b>=</b><div class="gap"><span>Uncommitted gap</span><strong>${compact(f.gap)}</strong></div></div><div class="funding-bars"><div class="bar-label"><span>How this project is covered</span><strong>${Math.round(Math.min(100, ((c.cash + f.committed) / f.total) * 100))}% committed</strong></div><div class="funding-bar"><i class="owner" style="width:${Math.min(100, (c.cash / f.total) * 100)}%"></i><i class="facility" style="width:${Math.max(0, Math.min(100 - (c.cash / f.total) * 100, (f.committed / f.total) * 100))}%"></i></div><div class="bar-legend"><span><i></i>Owner cash</span><span><i></i>Usable committed facility</span><span><i></i>Uncommitted</span></div></div><div class="funding-lines"><div class="cost-row"><span>Remaining project cash outflows</span><strong>${rupiah(f.remaining)}</strong></div><div class="cost-row"><span>Recorded external payments</span><strong>${rupiah(f.paid)}</strong></div><div class="cost-row"><span>Undrawn usable facility</span><strong>${rupiah(f.undrawn)}</strong></div><div class="cost-row"><span>Owner committed cash · remaining</span><strong>${rupiah(c.cash)}</strong></div></div><div class="inline-note">${ico("info", 16)}<p>Certified work is not necessarily paid. The remaining cash need includes unpaid work. Only a usable, explicitly committed facility reduces the gap.</p></div><div class="funding-assumptions"><h3>What is included?</h3><p>${esc(c.fundingNotes)}</p>${c.unknownCosts.length ? `<div class="notice clay">Unpriced: ${c.unknownCosts.map(esc).join(", ")}. The total is a known-cost floor, not an all-in quote.</div>` : '<span class="source-chip">All listed demo cost categories are priced</span>'}</div></section><div class="right-stack"><section class="panel summary-card"><span class="eyebrow">LENDER PROCESS</span><h2>A packet is not an approval.</h2><ol class="stage-list"><li class="${rcReadiness(c).accepted ? "done" : ""}"><span>${ico(rcReadiness(c).accepted ? "check" : "file", 15)}</span><div><strong>Reviewed budget</strong><small>${rcReadiness(c).accepted ? "Baseline accepted" : "Scope review required"}</small></div></li><li class="${c.packetStatus === "Accepted" ? "done" : ""}"><span>${ico("file", 15)}</span><div><strong>Financing packet</strong><small>${esc(c.packetStatus)}</small></div></li><li class="${c.facilityActive ? "done" : ""}"><span>${ico("shield", 15)}</span><div><strong>Lender decision</strong><small>${esc(c.creditStatus)}</small></div></li><li class="${c.facilityActive ? "done" : ""}"><span>${ico("wallet", 15)}</span><div><strong>Usable facility</strong><small>${c.facilityActive ? shortMoney(c.facility) : "No committed facility recorded"}</small></div></li></ol>${btn("Review packet", "packet-review", "file", true)}<small class="helper">Demo workflow only. No institution has approved these fictional cases.</small></section><section class="note-card"><h3>One clear next step</h3><p>${f.gap ? "Resolve the funding shortfall and outstanding evidence before representing this renovation as fully funded." : "Keep the accepted budget, owner cash, and facility conditions aligned as the work changes."}</p></section></div></div>`;
+}
+function evidenceTab(c) {
+  const open = rcReadiness(c).docs.length;
+  return `<section class="panel"><div class="panel-header"><div><span class="eyebrow">A CLEARER RECORD</span><h2>Evidence, with context.</h2><p>Received is not verified. Every review records its source, scope, and rationale.</p></div>${btn("Add demo record", "add-evidence", "plus")}</div><div class="evidence-summary"><span>${c.documents.length - open} records accepted / not applicable</span><span>${open} need attention</span></div><div class="document-list">${c.documents.map((d) => `<button class="document-item" data-document="${d.id}"><span class="document-icon">${ico(d.id === "site" ? "eye" : "file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(d.name)} <i>·</i> v${d.version}</span><small>${esc(d.note)}</small></span>${badge(d.status)}<span class="row-arrow">${ico("right", 15)}</span></button>`).join("")}</div><div class="panel-foot">${ico("info", 13)}Illustrative source records only. No real identity, legal, site, or bank document has been verified.</div></section>`;
+}
+function changesTab(c) {
+  const x = c.claim,
+    t = rcClaimTotals(c);
+  return `<div class="case-grid"><div class="right-stack"><section class="panel"><div class="panel-header"><div><span class="eyebrow">KEEP THE AGREEMENT CLEAR</span><h2>Change orders</h2><p>Owner consent, revised cost, and review are separate steps.</p></div>${btn("New change", "new-change", "plus")}</div><div class="changes-list">${c.changes.map((change) => `<article class="change-card"><div class="between"><span class="eyebrow">${esc(change.id)}</span>${badge(change.status)}</div><h3>${esc(change.title)}</h3><p>${esc(change.reason)}</p><div class="change-values"><span>+ ${shortMoney(change.amount)}</span><span>+ ${change.days} days</span><span>${change.ownerAck ? "Owner acknowledged" : "Owner acknowledgment required"}</span></div>${change.status !== "Accepted" ? `<button class="btn small" data-change="${change.id}" ${ui.role === "owner" ? (change.ownerAck ? "disabled" : "") : ui.role === "reviewer" && change.ownerAck ? "" : "disabled"}>${ui.role === "owner" ? "Acknowledge scope & cost" : "Review change order"}${ico("arrow", 13)}</button>` : ""}</article>`).join("") || '<div class="empty"><span class="empty-icon">' + ico("layers", 23) + "</span><h3>No change orders yet</h3><p>Keep scope changes visible before they become unexpected costs.</p></div>"}</div></section><section class="panel milestone-panel ${x ? "has-claim" : ""}"><div class="panel-header"><div><span class="eyebrow">WORK BEFORE PAYMENT</span><h2>Milestone claim</h2><p>Requested, certified, authorized, and paid stay distinct.</p></div></div>${x ? `<div class="claim-content"><div class="between"><strong>${x.id} · Wet-area works</strong>${badge(t.stale ? "Stale baseline" : x.status)}</div><div class="claim-amounts"><div><span>Claimed</span><strong>${shortMoney(t.requested)}</strong></div><div><span>Certified</span><strong>${x.status === "Submitted" ? "Not reviewed" : shortMoney(t.certified)}</strong></div><div><span>Authorized</span><strong>${x.authorization ? shortMoney(x.authorization.amount) : "Not authorized"}</strong></div><div><span>Paid</span><strong>${shortMoney(t.paid)}</strong></div></div><p class="sub">${esc(x.note)}</p><div class="notice ${t.stale ? "clay" : ""}">${t.stale ? "Budget changed. This claim cannot progress against a stale baseline." : `Linked to accepted budget v${x.baseline}. Demo agreement: no advance recovery or retention. Claims cannot exceed eligible scope.`}</div><div class="claim-actions">${x.status === "Submitted" ? `<button class="btn primary" data-action="certify-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review & certify ${ico("arrow", 14)}</button><button class="btn" data-action="request-correction" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Request correction</button>` : x.status === "Correction requested" ? `<button class="btn" data-action="revised-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Review revised submission</button>` : x.status === "Certified" ? `<button class="btn primary" data-action="authorize-claim" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record demo authorization ${ico("shield", 14)}</button>` : ["Authorized", "Partially paid"].includes(x.status) ? `<button class="btn primary" data-action="record-payment" ${ui.role !== "lender" || t.stale ? "disabled" : ""}>Record external payment ${ico("wallet", 14)}</button>` : x.status === "Paid" ? `<button class="btn primary" data-action="reconcile-claim" ${ui.role !== "reviewer" || t.stale ? "disabled" : ""}>Reconcile payment records ${ico("check", 14)}</button>` : badge("Reconciled")}<button class="text-link" data-action="claim-detail">View claim detail ${ico("arrow", 13)}</button></div>${ui.role === "owner" ? '<p class="helper">Certification and authorization belong to the reviewer and lender perspectives.</p>' : x.status === "Certified" && ui.role !== "lender" ? '<p class="helper">Switch to the lender perspective to record a separate authorization.</p>' : ""}</div>` : '<div class="empty"><span class="empty-icon">' + ico("wallet", 23) + '</span><h3>No claim submitted</h3><p>The Bintaro Courtyard demo includes a claim you can review end to end.</p><button class="btn" data-case="RC-025" data-tab="changes">Explore the sample claim ' + ico("arrow", 14) + "</button></div>"}</section></div><div class="right-stack"><section class="panel summary-card"><span class="eyebrow">THE EVIDENCE CHAIN</span><h2>Every step means something.</h2><ol class="stage-list">${[
+    ["Contractor claim", "What was requested"],
+    ["Reviewer certification", "What evidence supports"],
+    ["Lender authorization", "What is permitted"],
+    ["External payment record", "What was actually recorded"],
+    ["Reconciliation", "What matches the authorization"],
+  ]
+    .map(
+      ([l, n], i) =>
+        `<li><span>${String(i + 1).padStart(2, "0")}</span><div><strong>${l}</strong><small>${n}</small></div></li>`,
+    )
+    .join(
+      "",
+    )}</ol></section><section class="note-card"><h3>Keep the gap visible.</h3><p>A difference between the claimed and certified amount needs a reason. It does not disappear when an authorized amount is paid.</p>${x && x.status !== "Submitted" ? `<strong class="held-amount">${shortMoney(t.requested - t.certified)} held from this claim</strong>` : ""}</section></div></div>`;
+}
+function historyTab(c) {
+  return `<section class="panel"><div class="panel-header"><div><span class="eyebrow">THE STORY OF THIS CASE</span><h2>A record of what changed.</h2><p>Local demo events and preserved budget snapshots.</p></div><span class="count-pill">${c.history.length} events</span></div><div class="history-list">${c.history.map((e) => `<article class="history-item"><span class="history-icon">${ico("history", 15)}</span><div><strong>${esc(e.message)}</strong><p>${esc(e.detail)}</p><small>${esc(e.actor)} <span>·</span> ${when(e.time)} WIB</small></div></article>`).join("")}</div>${c.snapshots.length ? `<div class="snapshot-list"><h3>Preserved budget versions</h3>${c.snapshots.map((s) => `<div class="cost-row"><span>Budget v${s.version} · ${s.lines.length} lines</span><strong>${shortMoney(s.lines.reduce((sum, l) => sum + Math.round(l.quantity * l.rate), 0))}</strong></div>`).join("")}</div>` : ""}<div class="panel-foot">This browser-only history demonstrates the workflow; it is not a secure or immutable audit system.</div></section>`;
+}
+function claimsView() {
+  const cases = store.cases.filter((c) => c.claim);
+  return `${heading("Work, evidence, and the payment between.", "Keep every stage of a claim visible. No money moves in this mockup.")}<div class="claim-register">${
+    cases
+      .map((c) => {
+        const t = rcClaimTotals(c);
+        return `<section class="panel register-card"><div class="between"><span class="eyebrow">${c.claim.id} / ${c.id}</span>${badge(t.stale ? "Stale baseline" : c.claim.status)}</div><h2>${esc(c.name)}</h2><p class="sub">Wet-area works · Budget v${c.claim.baseline}</p><div class="claim-amounts"><div><span>Claimed</span><strong>${shortMoney(t.requested)}</strong></div><div><span>Certified</span><strong>${c.claim.status === "Submitted" ? "Not reviewed" : shortMoney(t.certified)}</strong></div><div><span>Paid</span><strong>${shortMoney(t.paid)}</strong></div></div><button class="btn primary" data-case="${c.id}" data-tab="changes">Open claim workspace ${ico("arrow", 14)}</button></section>`;
+      })
+      .join("") || '<div class="panel empty">No submitted claims.</div>'
+  }</div>`;
+}
+function evidenceInbox() {
+  const pending = store.cases.flatMap((c) =>
+    c.documents
+      .filter(
+        (d) => !["Reviewer accepted", "Not applicable"].includes(d.status),
       )
-      .join("") ||
-    '<tr><td colspan="5"><div class="empty"><strong>No applications found</strong>Try another search or filter, or create a new application.</div></td></tr>'
-  }</tbody></table></div><div class="table-footer"><span>Showing ${rows.length ? start + 1 : 0}–${Math.min(start + perPage, rows.length)} of ${rows.length} applications</span><div class="pager"><button data-action="prev" ${state.pagination === 1 ? "disabled" : ""} aria-label="Previous page">${icon("left", 11)}</button><span class="current" style="padding:4px 7px">${state.pagination}</span><button data-action="next" ${state.pagination === pages ? "disabled" : ""} aria-label="Next page">${icon("right", 11)}</button></div></div>`;
+      .map((d) => ({ c, d })),
+  );
+  return `${heading("The facts behind every next step.", "Review the records that need a correction, a source, or a qualified decision.")}<section class="panel"><div class="panel-header"><h2>Evidence needing attention</h2><span class="count-pill">${pending.length} records</span></div><div class="document-list">${pending.map(({ c, d }) => `<button class="document-item" data-evidence-case="${c.id}" data-document="${d.id}"><span class="document-icon">${ico("file", 21)}</span><span class="document-copy"><strong>${esc(d.type)}</strong><span>${esc(c.name)} <i>·</i> ${esc(d.name)}</span><small>${esc(d.note)}</small></span>${badge(d.status)}${ico("right", 14)}</button>`).join("") || '<div class="empty"><h3>The inbox is clear.</h3><p>New source records and corrections will appear here.</p></div>'}</div></section>`;
 }
-function attention() {
-  const pending = data.apps.find((a) => a.status === "Pending docs");
-  const review = data.apps.find((a) => a.status === "In review");
-  const items = [
-    ...(pending
-      ? [
-          {
-            title: "Supporting documents needed",
-            desc: `${pending.name} · Contractor agreement`,
-            id: pending.id,
-            icon: "file",
-          },
-        ]
-      : []),
-    ...(review
-      ? [
-          {
-            title: "Credit review awaiting decision",
-            desc: `${review.name} · Score ${review.score}/100`,
-            id: review.id,
-            icon: "clock",
-          },
-        ]
-      : []),
-  ];
-  return `<section class="panel attention-panel"><div class="panel-header"><h2>Needs your attention</h2><span class="badge review">${items.length} open</span></div><div class="attention-list">${items.map((a, i) => `<div class="attention-item"><div class="alert-icon ${i ? "red" : ""}">${icon(a.icon, 14)}</div><div><strong>${a.title}</strong><p>${escapeHTML(a.desc)}</p></div><button data-review="${a.id}" aria-label="Open ${escapeHTML(a.title)}">${icon("right", 13)}</button></div>`).join("") || '<div class="empty">You’re all caught up.</div>'}</div></section>`;
-}
-function activity() {
-  const seeded = [
-    {
-      message: "Application approved",
-      project: "Sentul Green Living",
-      time: null,
-    },
-    {
-      message: "Credit assessment completed",
-      project: `BSD Residence · Score ${assess(data.apps.find((a) => a.id === defaults[1].id) || data.apps[0]).score}/100`,
-      time: null,
-    },
-    {
-      message: "New application received",
-      project: "Menteng Heritage",
-      time: null,
-    },
-  ];
-  return `<section class="panel activity-panel"><div class="panel-header"><h2>Recent activity</h2><button data-page="reports" aria-label="View workspace activity">${icon("dots", 15)}</button></div><div class="activity-list">${[
-    ...data.activity,
-    ...seeded,
-  ]
-    .slice(0, 3)
-    .map(
-      (a, i) =>
-        `<div class="activity"><span class="activity-icon">${icon(i === 0 ? "check" : i === 1 ? "shield" : "file", 12)}</span><div><strong>${escapeHTML(a.message)}</strong><p>${escapeHTML(a.project)}</p></div><time>${a.time ? "Just now" : "Sample"}</time></div>`,
+function activityView() {
+  const entries = store.cases
+    .flatMap((c) =>
+      c.history.map((e) => ({ ...e, caseId: c.id, caseName: c.name })),
     )
-    .join("")}</div></section>`;
+    .sort((a, b) => new Date(b.time) - new Date(a.time));
+  return `${heading("A shared record of progress.", "Every review, change, and demo payment record in one place.")}<section class="panel"><div class="history-list">${entries.map((e) => `<article class="history-item"><span class="history-icon">${ico("history", 16)}</span><div><strong>${esc(e.message)}</strong><p>${esc(e.caseName)} · ${esc(e.detail)}</p><small>${esc(e.actor)} · ${when(e.time)} WIB</small></div><button class="text-link" data-case="${e.caseId}" data-tab="history">Open ${ico("arrow", 13)}</button></article>`).join("")}</div></section>`;
 }
-function applications() {
-  return `${heading("Every project starts here.", "Review, assess, and move renovation applications forward.", button("Export CSV", "export", "download") + button("New application", "new", "plus", true))}${metrics()}<section class="panel full-panel"><div class="panel-header"><div><h2>Applications</h2><p class="sub">One queue, from origination to decision.</p></div><label><span class="sr-only" style="font-size:10px;color:#9c8a7b">Status </span><select id="status-filter" class="inline-search" aria-label="Filter application status">${["All applications", "In review", "Approved", "Pending docs", "Rejected"].map((s) => `<option ${state.filter === s ? "selected" : ""}>${s}</option>`).join("")}</select></label></div><div class="table-toolbar"><input class="inline-search" id="queue-search" placeholder="Search project, borrower, or ID…" aria-label="Search applications" value="${escapeHTML(state.query)}"><span class="sub">${filteredApps().length} applications</span></div><div id="queue-table">${applicationTable()}</div></section>`;
-}
-function portfolio() {
-  const active = data.apps.filter((a) => a.status === "Approved");
-  return `${heading("Capital with a purpose.", "A closer look at your approved renovation projects.", button("Export portfolio", "export-portfolio", "download"))}${metrics()}<div class="between"><h2>Active projects <span class="muted" style="font-size:12px;font-weight:400">${active.length}</span></h2><span class="sub">Approved applications only</span></div><div class="project-grid">${active.map((a) => `<section class="panel project-card"><div class="project-card-top"><svg class="building-art" viewBox="0 0 120 80" fill="none" stroke="#927f6e" stroke-width="1.4" aria-hidden="true"><path d="M10 80V27L45 5l35 22v53 M80 80V40l30 10v30 M17 32h56 M24 42h15v14H24z M51 42h15v14H51z M39 80V65h15v15 M88 55h12v13H88z"/><path d="M0 79h120"/></svg><span style="position:absolute;top:10px;right:10px">${badge(a.status)}</span></div><h3>${escapeHTML(a.name)}</h3><p class="sub">${escapeHTML(a.location)}</p><div class="between"><span class="amount mono">${money(a.amount)}</span>${scoreHTML(a.score)}</div><div class="between" style="margin-bottom:0"><span class="sub">Renovation progress</span><span style="font-size:10px">${a.progress}%</span></div><div class="progress-track"><i style="width:${a.progress}%"></i></div><div class="between" style="margin:0"><span class="sub">Loan-to-value</span><span style="font-size:11px">${Math.round((a.amount / a.value) * 100)}%</span></div><button class="btn" data-review="${a.id}">View project ${icon("arrow", 13)}</button></section>`).join("") || '<section class="panel empty"><strong>No approved projects yet</strong>Approve an application to add it to your portfolio.</section>'}</div>`;
-}
-// Model is deliberately transparent and deterministic; never a production recommendation.
-function assess(values, policy = data.policy) {
-  const { amount, value, income, debt, months, contractor } = values;
-  const ltv = (amount / value) * 100;
-  const r = policy.interest / 1200;
-  const payment =
-    r === 0 ? amount / months : (amount * r) / (1 - Math.pow(1 + r, -months));
-  const dsr = ((debt + payment) / income) * 100;
-  const collateral = Math.max(0, Math.min(100, (100 - ltv) * 2));
-  const affordability = Math.max(0, Math.min(100, (70 - dsr) * 2));
-  const score = Math.round(
-    collateral * 0.4 + affordability * 0.4 + contractor * 0.2,
-  );
-  const decision =
-    ltv > policy.maxLtv || dsr > policy.maxDsr
-      ? "Outside policy"
-      : score >= policy.minScore
-        ? "Eligible for review"
-        : score >= 55
-          ? "Manual review required"
-          : "High risk";
-  const availablePayment = Math.max(0, (income * policy.maxDsr) / 100 - debt);
-  const affordableLoan =
-    r === 0
-      ? availablePayment * months
-      : (availablePayment * (1 - Math.pow(1 + r, -months))) / r;
-  const loanCeiling = Math.max(
-    0,
-    Math.min((value * policy.maxLtv) / 100, affordableLoan),
-  );
-  return {
-    ltv,
-    dsr,
-    payment,
-    collateral,
-    affordability,
-    score,
-    decision,
-    loanCeiling,
-  };
-}
-function field(label, name, value, type = "number", attrs = "") {
-  return `<label class="field">${label}<input name="${name}" type="${type}" value="${escapeHTML(value)}" required ${attrs}></label>`;
-}
-function scoringFields() {
-  return `${field("Requested amount (IDR million)", "amount", 850, "number", 'min="1" max="1000000" step="1"')}${field("Post-renovation value (IDR million)", "value", 1800, "number", 'min="1" max="10000000" step="1"')}${field("Monthly income (IDR million)", "income", 50, "number", 'min="0.1" max="1000000" step="0.1"')}${field("Existing monthly debt (IDR million)", "debt", 5, "number", 'min="0" max="1000000" step="0.1"')}<label class="field">Loan tenor<select name="months"><option value="36">36 months</option><option value="60" selected>60 months</option><option value="84">84 months</option><option value="120">120 months</option></select></label>${field("Contractor verification score", "contractor", 90, "number", 'min="0" max="100" step="1"')}`;
-}
-function engine() {
-  return `${heading("Clarity behind every credit score.", "Model renovation financing scenarios with transparent, rules-based assessment.")}<div class="risk-layout"><form class="panel form-panel" id="risk-form"><h2>Credit simulator</h2><p class="sub">Explore affordability, collateral, and contractor quality.</p><div class="form-grid">${scoringFields()}</div><p class="form-help">Amounts in IDR millions. Current demo policy: ${data.policy.interest}% p.a., amortized monthly. Excludes fees and insurance.</p><button class="btn primary" type="submit">${icon("shield", 15)}Run assessment</button></form><div id="risk-result">${riskResult(assess({ amount: 850, value: 1800, income: 50, debt: 5, months: 60, contractor: 90 }))}</div></div><section class="panel form-panel" style="margin-top:22px"><h2>How this prototype scores</h2><p class="sub" style="margin-bottom:0">Collateral contributes 40%, affordability 40%, and contractor verification 20%. Current policy caps loan-to-value at ${data.policy.maxLtv}% and debt service at ${data.policy.maxDsr}%. Credit score must reach ${data.policy.minScore} for approval; evidence must also be complete. An assessment never automatically approves or funds an application. No credit bureau, bank, or property valuation service is connected.</p></section>`;
-}
-function riskResult(r) {
-  return `<section class="panel result" aria-live="polite"><div class="between"><h2>Assessment result</h2><span class="badge ${r.score >= 75 && r.decision !== "Outside policy" ? "approved" : "review"}">${r.decision}</span></div><div class="result-score">${r.score}<small> / 100</small></div><p class="sub">Illustrative credit score</p>${[
-    ["Collateral strength", r.collateral],
-    ["Repayment capacity", r.affordability],
-    ["Loan-to-value", r.ltv],
-    ["Debt service ratio", r.dsr],
-  ]
+function settingsView() {
+  return `${heading("A workspace for the next conversation.", "Explore the mockup with fictional information only.")}<section class="panel settings-panel"><h2>Demo perspectives</h2><p>The role switch demonstrates a workflow. It does not create accounts or enforce real authorization.</p><div class="perspective-options">${Object.entries(
+    RC_ROLES,
+  )
     .map(
-      ([l, n]) =>
-        `<div class="factor"><div class="factor-label"><span>${l}</span><strong>${n.toFixed(1)}%</strong></div><div class="progress-track"><i style="width:${Math.min(n, 100)}%"></i></div></div>`,
+      ([id, r]) =>
+        `<button data-role="${id}" class="${ui.role === id ? "selected" : ""}"><span class="avatar">${r.initials}</span><strong>${r.label}</strong>${ui.role === id ? ico("check", 16) : ico("arrow", 16)}</button>`,
     )
     .join(
       "",
-    )}<div class="decision-callout"><strong>Estimated monthly payment · ${money(r.payment)}</strong><br>${r.decision === "Outside policy" ? "Reduce the loan amount or existing debt to bring this scenario within demo policy." : "This scenario can inform a human review. Verify borrower documents and independently assess property value."}</div></section>`;
-}
-function selected() {
-  return (
-    data.apps.find(
-      (a) => a.id === state.selectedProject && a.status === "Approved",
-    ) || data.apps.find((a) => a.status === "Approved")
-  );
-}
-function milestones() {
-  const a = selected();
-  if (!a)
-    return `${heading("Progress you can see.", "Milestone-based disbursement for approved renovation projects.")}<div class="panel empty"><strong>No approved project available</strong>Approve an application to begin tracking milestones.</div>`;
-  const stages = [
-    ["Project preparation", 15],
-    ["Foundation & structure", 30],
-    ["MEP & installation", 25],
-    ["Finishing works", 20],
-    ["Final handover", 10],
-  ];
-  const done = data.milestones
-    .filter((m) => m.project === a.id)
-    .map((m) => m.stage);
-  return `${heading("Progress you can see.", "Verify evidence and track each stage of renovation funding.")}<div class="notice">Prototype workflow · Evidence is tracked locally; files are not uploaded and no money is transferred.</div><div class="risk-layout"><section class="panel timeline"><div class="between" style="margin-bottom:25px"><h2>Project milestones</h2><select class="inline-search" id="project-select" aria-label="Select project">${data.apps
-    .filter((x) => x.status === "Approved")
-    .map(
-      (x) =>
-        `<option value="${x.id}" ${x.id === a.id ? "selected" : ""}>${escapeHTML(x.name)}</option>`,
-    )
-    .join(
-      "",
-    )}</select></div>${stages.map(([name, weight], i) => `<div class="milestone"><span class="milestone-icon">${icon(done.includes(i) ? "check" : i === done.length ? "clock" : "lock", 16)}</span><div class="stack"><div class="between"><h3>${name}</h3><strong style="font-size:12px">${money((a.amount * weight) / 100)}</strong></div><p class="sub">${weight}% of committed funding · ${done.includes(i) ? "Evidence verified" : i === done.length ? "Ready for evidence review" : "Previous milestone required"}</p>${i === done.length ? `<button class="btn small" style="align-self:flex-start;margin-top:8px" data-milestone="${i}" data-project="${a.id}">${icon("file", 13)}Review evidence</button>` : ""}</div></div>`).join("")}</section><section class="panel result"><h2>Funding overview</h2><p class="sub" style="margin-top:8px">${escapeHTML(a.name)}</p><div class="result-score" style="font-size:38px">${money(a.amount)}</div><p class="sub">Total committed</p><div class="factor"><div class="factor-label"><span>Milestones verified</span><strong>${done.length} / 5</strong></div><div class="progress-track"><i style="width:${done.length * 20}%"></i></div></div><div class="detail-grid" style="grid-template-columns:1fr 1fr"><div><dt>Verified for release</dt><dd>${money(stages.reduce((s, [, w], i) => s + (done.includes(i) ? (a.amount * w) / 100 : 0), 0))}</dd></div><div><dt>Remaining stages</dt><dd>${5 - done.length}</dd></div></div><div class="decision-callout">Every release requires verified site evidence, budget confirmation, and a human reviewer. This demo records verification only.</div></section></div>`;
-}
-function reports() {
-  return `${heading("Turn your pipeline into perspective.", "Export your current workspace and review the decision trail.", button("Download CSV", "export", "download", true))}${metrics()}<details class="panel report-trends" open><summary>Illustrative capital trends ${icon("down", 14)}</summary><div class="panel-header"><h2>Capital in motion</h2><div class="segmented">${["3m", "6m", "1y"].map((t) => `<button data-range="${t}" class="${state.range === t ? "active" : ""}">${t.toUpperCase()}</button>`).join("")}</div></div><p class="sub" style="padding:15px 22px">Sample illustration, not actual historical performance · IDR billion</p>${chart()}</details><div class="risk-layout"><section class="panel form-panel"><h2>Workspace report</h2><p class="sub">Your exported CSV includes every current application, credit score, status, loan-to-value, and reviewer note. Amounts are in IDR millions.</p><div class="settings-row"><div><strong>Application register</strong><p class="sub">${data.apps.length} applications · All statuses</p></div><button class="btn small" data-action="export">${icon("download", 13)}Export</button></div><div class="settings-row"><div><strong>Approved portfolio</strong><p class="sub">${data.apps.filter((a) => a.status === "Approved").length} committed projects</p></div><button class="btn small" data-action="export-portfolio">${icon("download", 13)}Export</button></div></section><section class="panel"><div class="panel-header"><h2>Decision trail</h2></div><div class="activity-list" style="display:block">${data.activity.length ? data.activity.map((a) => `<div class="activity"><span class="activity-icon">${icon("check", 12)}</span><div><strong>${escapeHTML(a.message)}</strong><p>${escapeHTML(a.project)} · ${new Date(a.time).toLocaleString("en-GB")}</p></div></div>`).join("") : '<div class="empty"><strong>No new activity yet</strong>Create an application or record a review to build your local decision trail.</div>'}</div></section></div>`;
-}
-function settings() {
-  return `${heading("Make this workspace yours.", "Manage your demo profile and local prototype data.")}<form id="settings-form" class="panel settings-section"><h2>Profile & preferences</h2><p class="sub">Saved in this browser. No external account is created.</p><div class="form-grid">${field("Full name", "name", data.settings.name, "text", 'maxlength="70"')}${field("Email address", "email", data.settings.email, "email", 'maxlength="120"')}</div><div class="settings-row"><div><strong>Workspace notifications</strong><p class="sub">Show the update indicator in the navigation bar.</p></div><button type="button" role="switch" aria-label="Workspace notifications" aria-checked="${data.settings.notifications}" class="switch" data-action="toggle-notifications"></button></div><button class="btn primary" type="submit">Save profile</button></form><section class="panel settings-section"><h2>Stakeholder perspectives</h2><div class="settings-row"><div><strong>${state.role === "bank" ? "Borrower experience" : "Credit operations"}</strong><p class="sub">Switch between the credit workspace and project tracking.</p></div><button class="btn" data-action="switch-role">Switch view ${icon("arrow", 13)}</button></div></section><section class="panel settings-section"><h2>Lender configuration</h2><p class="sub" style="margin-top:10px">Set credit gates and inspect the integration readiness map.</p><button class="btn" style="margin-top:15px" data-page="policy">${icon("shield", 13)}Lending policy & integrations</button></section><section class="panel settings-section"><h2>Prototype data</h2><p class="sub" style="margin-top:10px">Data is saved in browser local storage, separately for each browser and origin. Use fictional information only. Reset removes your local applications, decisions, profile, and milestone records.</p><button class="btn danger" style="margin-top:20px" data-action="reset">${icon("refresh", 13)}Reset demo workspace</button></section>`;
-}
-function borrower() {
-  const a = intelligenceProject(),
-    r = propertyAnalysis(a);
-  return `${heading("Your next chapter, taking shape.", "A clearer renovation plan, a realistic budget, and a path to financing.", button("Plan a renovation", "new", "plus", true))}
- <div class="notice">Homeowner planning perspective · Sample projects in a shared demo workspace. This is not an authenticated borrower account.</div>${intelligenceHero()}
- <div class="decision-metrics">${[
-   [
-     "Renovation + reserve",
-     money(a.property.renovation + r.costReserve),
-     "RAB plus contingency",
-   ],
-   [
-     "Modeled loan capacity",
-     money(r.loanCeiling),
-     "From income and collateral inputs",
-   ],
-   [
-     "Monthly installment",
-     money(r.payment),
-     `${data.policy.interest}% interest · ${a.months} months`,
-   ],
-   [
-     "Evidence readiness",
-     `${r.covered} / 7`,
-     "Demo checklist, not source verification",
-   ],
- ]
-   .map(
-     ([l, v, d]) =>
-       `<section class="panel decision-metric"><span>${l}</span><strong>${v}</strong><small>${d}</small></section>`,
-   )
-   .join("")}</div>
- <div class="risk-layout"><section class="panel form-panel"><div class="between"><div><h2>Your property plan</h2><p class="sub">${escapeHTML(a.name)} · ${escapeHTML(a.location)}</p></div>${propertySelect()}</div><div class="property-opportunity"><div><strong>01 · Know your renovation budget</strong><p>Model your RAB, contingency, project costs, and scope.</p></div><button class="icon-button" data-page="intelligence" aria-label="Plan renovation budget">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>02 · Understand what you can finance</strong><p>Test your income, existing debt, and monthly installment.</p></div><button class="icon-button" data-page="engine" aria-label="Calculate affordability">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>03 · Prepare your Renovation Passport</strong><p>See the evidence a lender needs for a complete review.</p></div><button class="icon-button" data-page="passport" aria-label="Prepare renovation passport">${icon("arrow", 14)}</button></div><div class="property-opportunity"><div><strong>04 · Track construction milestones</strong><p>Follow evidence checks on approved project funding.</p></div><button class="icon-button" data-page="milestones" aria-label="Track project milestones">${icon("arrow", 14)}</button></div></section><section class="panel form-panel"><h2>What to prepare</h2><p class="sub">Your planning checklist</p>${
-   renovaEvidence
-     .filter(([k]) => !a.property.evidence[k])
-     .map(
-       ([, l]) =>
-         `<div class="document-row">${icon("file", 14)}${l}<span class="badge pending">Required</span></div>`,
-     )
-     .join("") ||
-   '<div class="decision-callout">All demo checks are recorded. A lender still needs to independently verify the underlying source documents.</div>'
- }<button class="btn" style="margin-top:20px" data-page="passport">Open my passport ${icon("arrow", 13)}</button></section></div>`;
+    )}</div></section><section class="panel settings-panel"><h2>What this prototype demonstrates</h2><div class="scope-list">${["Source-linked scope and RAB review", "Known costs, cash commitments, and funding gaps", "Evidence states and reasoned review", "Owner-acknowledged change orders", "Separate certification, authorization, and payment records", "Frozen packet exports and printable lender memo"].map((l) => `<span>${ico("check", 15)}${l}</span>`).join("")}</div><p class="helper">No real document verification, bank integration, lending decision, multi-user security, or funds transfer is connected. Browser data does not synchronize across devices. Use only fictional information.</p></section><section class="panel settings-panel"><h2>Restore the sample workspace</h2><p>Reset removes changes to this mockup's local demo data. Older RenovaCredit prototype storage is left untouched.</p>${btn("Reset demo data", "reset", "history", false)}</section>`;
 }
 function openModal(title, body, foot = "") {
-  modalOpener = document.activeElement;
+  opener = document.activeElement;
   document.querySelector("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close-modal" aria-label="Close dialog">${icon("close", 16)}</button></div><div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ""}</section></div>`;
+    `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="modal-head"><div><span class="eyebrow">RENOVACREDIT / DEMO WORKFLOW</span><h2 id="dialog-title">${title}</h2></div><button class="icon-btn" data-action="close" aria-label="Close dialog">${ico("close", 17)}</button></div><div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ""}</section></div>`;
   document.body.style.overflow = "hidden";
-  document.querySelector(".modal input,.modal button,.modal").focus();
+  document.querySelector(".modal button,.modal input,.modal").focus();
 }
 function closeModal() {
   document.querySelector("#modal-root").innerHTML = "";
   document.body.style.overflow = "";
-  if (modalOpener?.isConnected) modalOpener.focus();
+  if (opener?.isConnected) opener.focus();
   else document.querySelector("#main-content")?.focus();
 }
-function review(id) {
-  const a = data.apps.find((x) => x.id === id);
-  if (!a) return;
-  const r = assess(a),
-    p = a.property,
-    reasons = approvalReasons(a),
-    lender = isLender();
+function field(label, name, value, type = "number", attrs = "") {
+  return `<label class="field">${label}<input type="${type}" name="${name}" value="${esc(value)}" required ${attrs}></label>`;
+}
+function noteField(label = "Review rationale", name = "note", value = "") {
+  return `<label class="field full">${label}<textarea name="${name}" required maxlength="1200" placeholder="Describe the source, scope of review, and what remains unresolved…">${esc(value)}</textarea></label>`;
+}
+function formError(form, msg) {
+  const error = form.querySelector(".form-error");
+  if (error) error.textContent = msg;
+  else notify(msg);
+}
+function safeAmount(v) {
+  return Number.isSafeInteger(v) && v >= 0 && v <= 1000000000000;
+}
+function sourceQuote(c, lineId = null) {
   openModal(
-    escapeHTML(a.name),
-    `<div class="between"><div><span class="eyebrow muted">${escapeHTML(a.id)}</span><p class="sub">${escapeHTML(a.borrower)} · ${escapeHTML(a.location)}</p></div>${badge(a.status)}</div>
- <dl class="detail-grid"><div><dt>Requested amount</dt><dd>${money(a.amount)}</dd></div><div><dt>Credit score · current policy</dt><dd>${r.score} / 100</dd></div><div><dt>Loan-to-value</dt><dd>${r.ltv.toFixed(1)}%</dd></div><div><dt>Monthly installment</dt><dd>${money(r.payment)}</dd></div><div><dt>Debt service ratio</dt><dd>${r.dsr.toFixed(1)}%</dd></div><div><dt>Policy-based capacity</dt><dd>${money(r.loanCeiling)}</dd></div></dl>
- <h3>Evidence readiness</h3>${renovaEvidence.map(([k, l]) => `<div class="document-row">${icon("file", 14)}${l}<span class="badge ${p.evidence[k] ? "approved" : "pending"}">${p.evidence[k] ? "Demo checked" : "Required"}</span></div>`).join("")}
- <button class="btn small" style="margin-top:15px" data-docs="${a.id}">${icon("file", 13)}${a.status === "Pending docs" ? "Mark demo documents complete" : "Review demo documents"}</button>
- <div class="decision-callout"><strong>Credit gate · ${r.decision}</strong><br>Policy v${data.policy.version}: LTV ≤ ${data.policy.maxLtv}%, debt service ≤ ${data.policy.maxDsr}%, credit score ≥ ${data.policy.minScore}. ${reasons.length ? `<ul class="gate-list">${reasons.map((v) => `<li>${escapeHTML(v)}</li>`).join("")}</ul>` : "All demo approval gates passed. A human lender decision is still required."}</div>
- <p class="form-help">Evidence checks are local simulations. No bureau, registry, appraisal, or bank verification is connected. ${!lender ? "You are in a planning perspective; choose Bank or Financial institution for credit decisions." : ""}</p>
- ${a.status === "In review" && lender ? `<label class="field" style="margin-top:20px">Reviewer note (required for rejection)<textarea id="review-note" class="review-note" maxlength="1000" placeholder="Record the rationale for your decision…"></textarea></label><p id="review-error" class="error-message" role="alert"></p>` : a.note ? `<div class="notice"><strong>Reviewer note</strong><br>${escapeHTML(a.note)}</div>` : ""}`,
-    a.status === "In review" && lender
-      ? `<button class="btn" data-action="close-modal">Cancel</button><button class="btn danger" data-decision="Rejected" data-id="${a.id}">Decline</button><button class="btn primary" data-decision="Approved" data-id="${a.id}" ${reasons.length ? "disabled" : ""}>${icon("check", 14)}Approve application</button>`
-      : button("Close", "close-modal"),
+    "The quote behind this budget",
+    `<div class="notice">Illustrative source record. This is a generated demo quote, not an uploaded or verified contractor document.</div><div class="quote-paper"><div class="between"><div><span class="eyebrow">RUANG KARYA / DEMO QUOTE</span><h3>${esc(c.name)}</h3><p>${esc(c.location)}</p></div><span class="quote-stamp">SAMPLE</span></div><div class="table-scroll"><table><thead><tr><th>Item / reference</th><th>Qty</th><th>Unit price</th></tr></thead><tbody>${c.lines.map((l) => `<tr class="${l.id === lineId ? "source-highlight" : ""}"><td><strong>${esc(l.label)}</strong><small>${esc(l.source)}</small></td><td>${l.originalQuantity} ${esc(l.unit)}</td><td>${rupiah(l.originalRate)}</td></tr>`).join("")}</tbody></table></div><small>Original source values are preserved separately from reviewed edits.</small></div>`,
+    btn("Close source", "close"),
   );
 }
-function newApplication() {
+function reviewLine(id) {
+  const c = activeCase(),
+    l = c.lines.find((x) => x.id === id);
+  if (!l || !rcCanReview(ui.role)) return;
   openModal(
-    "A new possibility.",
-    `<p class="sub" style="margin-bottom:20px">Create a renovation application and generate an initial demo assessment.</p><div class="notice">Use fictional information. Data stays in this browser.</div><form id="new-form"><div class="form-grid">${field("Project name", "project", "", "text", 'maxlength="90" placeholder="e.g. Kebayoran Garden House"')}${field("Borrower name", "borrower", "", "text", 'maxlength="90" placeholder="e.g. Sarah Wijaya"')}<label class="field full">Location<input name="location" required maxlength="100" placeholder="District, city"></label>${scoringFields()}</div><p class="form-help">${data.policy.interest}% illustrative annual interest. The assessment combines collateral (40%), affordability (40%), and contractor verification (20%). This does not approve credit.</p><p class="error-message" id="new-error" role="alert"></p><button type="submit" class="btn primary" style="margin-top:15px">${icon("plus", 14)}Create & assess application</button></form>`,
+    "Review a scope line",
+    `<div class="source-summary">${ico("file", 17)}<div><strong>${esc(l.label)}</strong><p>RAB-${c.id}.pdf · ${esc(l.source)}</p></div></div><div class="notice">Original: ${l.originalQuantity} ${esc(l.unit)} × ${rupiah(l.originalRate)}. Reviewing this demo line does not verify a real quote or site measurement.</div><form id="line-form" data-line="${id}"><div class="form-grid">${field(`Reviewed quantity (${esc(l.unit)})`, "quantity", l.quantity, "number", 'min="0.01" max="100000" step="0.01"')}${field("Unit rate (IDR)", "rate", l.rate, "number", 'min="0" max="1000000000000" step="1"')}${noteField("Review note · required", "note", l.reviewed ? "Demo source reviewed; quantities and specification agree with the sample quote." : "")}</div><p class="form-error" role="alert"></p><button class="btn primary" type="submit">${ico("check", 15)}Confirm reviewed line</button></form>`,
   );
 }
-function numbers(form) {
-  return Object.fromEntries(
-    ["amount", "value", "income", "debt", "months", "contractor"].map((n) => [
-      n,
-      Number(new FormData(form).get(n)),
-    ]),
+function documentModal(id) {
+  const c = activeCase(),
+    d = c.documents.find((x) => x.id === id);
+  if (!d) return;
+  openModal(
+    "Review evidence, with its context",
+    `<div class="source-summary">${ico("file", 21)}<div><strong>${esc(d.type)}</strong><p>${esc(d.name)} · v${d.version}</p></div>${badge(d.status)}</div><dl class="source-details"><div><dt>Source</dt><dd>${esc(d.source)}</dd></div><div><dt>Case</dt><dd>${esc(c.name)}</dd></div><div><dt>Reviewer</dt><dd>${esc(d.reviewer || "Not reviewed")}</dd></div><div><dt>Verification scope</dt><dd>Demo record only · no external verification</dd></div></dl><div class="notice">No real file has been uploaded or authenticated. Record a reasoned demo review, not a claim of title, identity, or site verification.</div><form id="document-form" data-document="${id}"><div class="form-grid"><label class="field full">Review outcome<select name="status">${["Received", "Needs correction", "Reviewer accepted", "Not applicable", "Missing"].map((s) => `<option ${d.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>${noteField("Review scope / correction / non-applicability rationale", "note", d.note)}</div><p class="form-error" role="alert"></p><button class="btn primary" type="submit" ${!rcCanReview(ui.role) ? "disabled" : ""}>Save demo evidence review</button>${!rcCanReview(ui.role) ? '<p class="helper">Use the reviewer perspective to change review states.</p>' : ""}</form>`,
   );
 }
-function exportCSV(onlyApproved = false) {
-  const rows = onlyApproved
-    ? data.apps.filter((a) => a.status === "Approved")
-    : data.apps;
-  const cell = (v) =>
-    '"' +
-    String(v ?? "")
-      .replace(/^[=+@\-\t\r]/, "'$&")
-      .replace(/"/g, '""') +
-    '"';
-  const csv = [
-    [
-      "Application ID",
-      "Project",
-      "Borrower",
-      "Location",
-      "Amount (IDR million)",
-      "Post-renovation value (IDR million)",
-      "Credit score",
-      "Status",
-      "Loan-to-value (%)",
-      "Reviewer note",
+function fundingModal() {
+  const c = activeCase();
+  openModal(
+    "Make the funding assumptions explicit",
+    `<form id="funding-form"><div class="form-grid">${field("Committed owner cash remaining (IDR)", "cash", c.cash, "number", 'min="0" max="1000000000000" step="1"')}${field("Contingency reserve (%)", "contingency", c.contingency, "number", 'min="0" max="50" step="1"')}${field("Known fees and other costs (IDR)", "fees", c.fees, "number", 'min="0" max="1000000000000" step="1"')}${ui.role === "lender" ? `${field("Usable committed facility (IDR)", "facility", c.facility, "number", 'min="0" max="1000000000000" step="1"')}<label class="field">Demo facility reference<input name="facilityReference" maxlength="80" value="${esc(c.facilityReference || "")}" placeholder="DEMO-FAC-026"></label><label class="check-field full"><input name="active" type="checkbox" ${c.facilityActive ? "checked" : ""}>Record this as a usable demo facility with accepted current budget conditions</label>` : '<div class="notice full">Usable facility amounts can only be changed in the lender demo perspective. Unrequested or conditional financing does not reduce the gap.</div>'}${noteField("Included costs and assumptions", "notes", c.fundingNotes)}<label class="field full">Unpriced items (leave empty if all listed categories are priced)<input name="unknown" maxlength="200" value="${esc(c.unknownCosts.join(", "))}" placeholder="e.g. temporary accommodation"></label></div><p class="form-error" role="alert"></p><button class="btn primary" type="submit">Save funding assumptions</button></form>`,
+  );
+}
+function newCase() {
+  openModal(
+    "Start with the renovation, not a score.",
+    `<p class="sub">Capture the objective and what you know. Add source-backed quantities and costs in the case workspace.</p><div class="notice">Use fictional information only. This is a local interactive mockup.</div><form id="new-case-form"><div class="form-grid">${field("Project name", "name", "", "text", 'maxlength="90" placeholder="e.g. Bekasi kitchen refresh"')}${field("Homeowner display name", "owner", "", "text", 'maxlength="80" placeholder="Fictional homeowner"')}${field("Location", "location", "", "text", 'maxlength="120" placeholder="Area, city"')}<label class="field">Scope class<select name="scope"><option>Non-structural interior renovation</option><option>Waterproofing & wet areas</option><option>Light services renovation</option><option>Structural / specialist review needed</option></select></label>${field("Working construction budget (IDR)", "budget", 240000000, "number", 'min="1000000" max="1000000000000" step="1"')}${field("Committed owner cash (IDR)", "cash", 30000000, "number", 'min="0" max="1000000000000" step="1"')}${noteField("Renovation objective", "objective", "")}</div><p class="form-error" role="alert"></p><button class="btn primary" type="submit">Create draft case ${ico("arrow", 15)}</button></form>`,
+  );
+}
+function certifyModal() {
+  const c = activeCase(),
+    x = c.claim,
+    t = rcClaimTotals(c);
+  if (!x || ui.role !== "reviewer" || t.stale || x.status !== "Submitted")
+    return;
+  openModal(
+    "Certify what the evidence supports.",
+    `<div class="notice">Demo site note: Rp52.000.000 is supported. Rp8.000.000 of finishing work needs evidence. No real measurement or inspection has taken place.</div><form id="certify-form"><div class="claim-form-lines">${x.items.map((i, n) => `<label class="field">${esc(i.label)}<span class="sub">Claimed: ${rupiah(i.requested)} · approved scope: ${rupiah(Math.round(c.lines[i.line].quantity * c.lines[i.line].rate))}</span><input name="certified-${n}" aria-label="Certified amount for ${esc(i.label)}" type="number" min="0" max="${i.requested}" step="1" value="${n === 0 ? 20000000 : 32000000}" required></label>`).join("")}</div>${noteField("Certification rationale", "note", "Demo record: Rp8.000.000 of bathroom finishing is not yet supported by the illustrative evidence.")}<p class="form-error" role="alert"></p><button type="submit" class="btn primary">Record demo certification ${ico("check", 15)}</button></form>`,
+  );
+}
+function authorizationModal() {
+  const c = activeCase(),
+    x = c.claim,
+    t = rcClaimTotals(c);
+  if (!x || ui.role !== "lender" || t.stale || x.status !== "Certified") return;
+  openModal(
+    "A separate lender authorization.",
+    `<div class="notice">This records a fictional authorization only. It does not connect to a bank or release funds.</div><div class="modal-amount"><span>Certified eligible amount</span><strong>${rupiah(t.certified)}</strong></div><form id="authorize-form">${field("Demo authorization reference", "reference", "", "text", 'maxlength="80" placeholder="DEMO-AUTH-012"')}${noteField("Authorization note", "note", "Demo authorization limited to certified work under budget v" + c.version + ". No retention or advances apply in this sample agreement.")}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">Record demo authorization</button></form>`,
+  );
+}
+function paymentModal() {
+  const c = activeCase(),
+    x = c.claim,
+    t = rcClaimTotals(c);
+  if (
+    !x ||
+    ui.role !== "lender" ||
+    t.stale ||
+    !["Authorized", "Partially paid"].includes(x.status)
+  )
+    return;
+  openModal(
+    "Record a payment made elsewhere.",
+    `<div class="notice">Fictional external payment record. This form never transfers money. Partial payments stay separate until reconciled.</div><form id="payment-form"><div class="form-grid">${field("External payment reference", "reference", "", "text", 'maxlength="80" placeholder="DEMO-PAY-012"')}${field("Recorded amount (IDR)", "amount", x.authorization.amount - t.paid, "number", `min="1" max="${x.authorization.amount - t.paid}" step="1"`)}</div><p class="helper">Remaining authorized amount: ${rupiah(x.authorization.amount - t.paid)}. The same external reference cannot be recorded twice.</p><p class="form-error" role="alert"></p><button class="btn primary" type="submit">Save demo payment record</button></form>`,
+  );
+}
+function newChange() {
+  openModal(
+    "A scope change, with no surprises.",
+    `<form id="change-form"><div class="form-grid">${field("Change title", "title", "", "text", 'maxlength="120"')}${field("Additional cost (IDR)", "amount", 12000000, "number", 'min="1" max="1000000000000" step="1"')}${field("Schedule impact (days)", "days", 3, "number", 'min="0" max="365" step="1"')}${noteField("Reason and proposed scope", "reason", "")}</div><p class="notice">The homeowner must acknowledge the cost and scope before a reviewer can accept this demo change. Acceptance creates a new budget version requiring re-review.</p><p class="form-error" role="alert"></p><button class="btn primary" type="submit">Create proposed change</button></form>`,
+  );
+}
+function packetData(c) {
+  const f = rcFinance(c),
+    r = rcReadiness(c);
+  return {
+    schema: "RC-PACKET/1.0",
+    product: "RenovaCredit by SECHA",
+    prototype: true,
+    currency: "IDR",
+    amountUnit: "rupiah",
+    exportedAt: new Date().toISOString(),
+    budgetVersion: c.version,
+    case: {
+      id: c.id,
+      name: c.name,
+      location: c.location,
+      owner: c.owner,
+      status: c.status,
+    },
+    scope: c.lines.map((l) => ({
+      ...l,
+      amount: Math.round(l.quantity * l.rate),
+    })),
+    funding: {
+      ...f,
+      facilityReference: c.facilityReference || null,
+      ownerCash: c.cash,
+      notes: c.fundingNotes,
+      unpriced: c.unknownCosts,
+    },
+    evidence: c.documents.map((d) => ({
+      type: d.type,
+      status: d.status,
+      source: d.source,
+      version: d.version,
+      reviewer: d.reviewer,
+      note: d.note,
+    })),
+    readiness: {
+      budgetReviewed: r.accepted,
+      unreviewedLines: r.lineCount,
+      openEvidence: r.docs.map((d) => d.type),
+      packetStatus: c.packetStatus,
+      creditStatus: c.creditStatus,
+    },
+    changes: structuredClone(c.changes),
+    claim: c.claim ? structuredClone(c.claim) : null,
+    history: structuredClone(c.history),
+    limits: [
+      "Fictional browser-only workflow; no authenticated or professional verification.",
+      "No bank or payment integration; no money is moved.",
+      "A reviewed packet is not a lending decision.",
     ],
-    ...rows.map((a) => [
-      a.id,
-      a.name,
-      a.borrower,
-      a.location,
-      a.amount,
-      a.value,
-      a.score,
-      a.status,
-      ((a.amount / a.value) * 100).toFixed(1),
-      a.note || "",
-    ]),
-  ]
-    .map((r) => r.map(cell).join(","))
-    .join("\r\n");
-  const url = URL.createObjectURL(
-    new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `renovacredit-${onlyApproved ? "portfolio" : "applications"}-${today().slice(0, 10)}.csv`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast(`${rows.length} applications exported.`);
+  };
 }
-function evidence(project, stage) {
-  const a = data.apps.find((x) => x.id === project);
-  const labels = [
-    "Project preparation",
-    "Foundation & structure",
-    "MEP & installation",
-    "Finishing works",
-    "Final handover",
-  ];
+function exportModal() {
+  const c = activeCase(),
+    r = rcReadiness(c);
   openModal(
-    "Milestone evidence review",
-    `<p class="sub">${escapeHTML(a.name)} · ${labels[stage]}</p><div class="notice" style="margin-top:20px">Sample review checklist. Checking these items simulates a reviewer verification; it does not upload evidence or release funds.</div><form id="evidence-form" data-project="${project}" data-stage="${stage}">${["Site progress photos reviewed", "Contractor invoice and budget matched", "Work completed to the agreed milestone"].map((l) => `<label class="document-row" style="cursor:pointer"><input type="checkbox" required>${l}</label>`).join("")}<button class="btn primary" type="submit" style="margin-top:25px">${icon("check", 14)}Record demo verification</button></form>`,
+    "A clear packet for the next reviewer.",
+    `<div class="source-summary">${ico("file", 22)}<div><strong>${esc(c.name)}</strong><p>${esc(c.id)} · budget v${c.version} · ${c.packetStatus}</p></div></div><div class="notice">The export freezes the current demo values. It includes evidence status and source references, not real identity or credit files. It is not a loan approval.</div><div class="export-options"><button data-action="download-json"><span class="document-icon">${ico("download", 21)}</span><span><strong>Structured packet</strong><small>JSON · current version, amounts in IDR</small></span>${ico("arrow", 16)}</button><button data-action="print-packet"><span class="document-icon">${ico("file", 21)}</span><span><strong>Readable lender memo</strong><small>Print or save as PDF in your browser</small></span>${ico("arrow", 16)}</button></div><div class="export-state">${badge(r.accepted ? "Budget reviewed" : "Draft budget")}<span>${r.docs.length} open evidence checks · no real lender approval</span></div>`,
+  );
+}
+function downloadJSON() {
+  const c = activeCase(),
+    packet = packetData(c);
+  const blob = new Blob([JSON.stringify(packet, null, 2)], {
+      type: "application/json",
+    }),
+    url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = `renovacredit-${c.id}-v${c.version}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  log(c, "Case packet exported", `Frozen JSON snapshot · budget v${c.version}`);
+  notify("Current demo packet exported as JSON.");
+}
+function printPacket() {
+  const c = activeCase(),
+    p = packetData(c),
+    f = p.funding;
+  const win = window.open("", "_blank");
+  if (!win) {
+    notify("Allow the print window to open, then try again.");
+    return;
+  }
+  win.document.write(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>RenovaCredit memo · ${esc(c.id)}</title><style>body{font:14px/1.7 Arial,sans-serif;max-width:850px;margin:45px auto;color:#44362f;padding:0 25px}h1{font-size:30px}h2{font-size:18px;margin-top:27px}.label{color:#aa5239;font-size:11px;letter-spacing:2px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:10px;border-bottom:1px solid #dfd6c9}.notice{padding:16px;background:#f6eddf;border:1px solid #e4d4bc}.print{padding:10px 15px;border:0;background:#b65c43;color:white;border-radius:5px;cursor:pointer}small{color:#746253}@media print{.print{display:none}body{margin:0;max-width:none}.notice{break-inside:avoid}}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><p class="label">RENOVACREDIT / REVIEW MEMO / FICTIONAL DEMO</p><h1>${esc(c.name)}</h1><p>${esc(c.id)} · ${esc(c.location)} · Budget v${c.version}</p><div class="notice">This memo records a fictional case snapshot. It is not a bank approval, appraisal, legal verification, or payment instruction.</div><h2>What is known</h2><p>Construction: ${rupiah(f.construction)} · Contingency: ${rupiah(f.reserve)} · Fees: ${rupiah(c.fees)}<br>Known project cost: <strong>${rupiah(f.total)}</strong><br>Owner cash: ${rupiah(c.cash)} · Usable facility: ${rupiah(f.committed)}<br>Uncommitted funding gap: <strong>${rupiah(f.gap)}</strong></p><h2>What needs attention</h2><p>${p.readiness.budgetReviewed ? "Budget baseline reviewed." : "Budget review is incomplete."} ${p.readiness.openEvidence.length ? esc(p.readiness.openEvidence.join("; ")) : "All demo evidence review states are recorded."}</p><p>Unpriced costs: ${esc(c.unknownCosts.join("; ") || "None recorded in this demo")}<br>${esc(c.fundingNotes)}</p><h2>Scope & budget</h2><table><thead><tr><th>Work</th><th>Qty</th><th>Amount</th><th>Source</th></tr></thead><tbody>${p.scope.map((l) => `<tr><td>${esc(l.label)}</td><td>${l.quantity} ${esc(l.unit)}</td><td>${rupiah(l.amount)}</td><td>${esc(l.source)}</td></tr>`).join("")}</tbody></table><h2>Evidence status</h2><table><tbody>${p.evidence.map((d) => `<tr><td>${esc(d.type)}</td><td>${esc(d.status)}</td><td>${esc(d.reviewer || "Not reviewed")}</td></tr>`).join("")}</tbody></table><h2>What action is requested</h2><p>${esc(c.next)}</p><p>Packet: ${esc(c.packetStatus)} · Lender: ${esc(c.creditStatus)}</p><small>RC-PACKET/1.0 · ${esc(p.exportedAt)} · Amounts in IDR. Illustrative sources only. No sensitive original files are attached.</small></body></html>`,
+  );
+  win.document.close();
+}
+function packetReview() {
+  const c = activeCase(),
+    r = rcReadiness(c);
+  openModal(
+    "Is the packet ready for the lender?",
+    `<div class="readiness-checks"><div>${ico(r.accepted ? "check" : "clock", 17)}<span>Reviewed budget v${c.version}</span>${badge(r.accepted ? "Ready" : "Review needed")}</div><div>${ico(r.docs.length ? "clock" : "check", 17)}<span>Evidence review states</span>${badge(r.docs.length ? `${r.docs.length} unresolved` : "Ready")}</div><div>${ico(c.unknownCosts.length ? "clock" : "check", 17)}<span>Unpriced cost categories</span>${badge(c.unknownCosts.length ? "Needs correction" : "None recorded")}</div></div><div class="notice">Packet acceptance is separate from credit approval and facility availability. Only the lender demo perspective can accept a ready packet.</div><form id="packet-form">${noteField("Demo acceptance / conditions", "note", "Demo packet accepted for review only. No actual institution or credit decision is represented.")}<p class="form-error" role="alert"></p><button class="btn primary" type="submit" ${ui.role !== "lender" || !r.ready || !r.accepted ? "disabled" : ""}>Record demo packet acceptance</button></form>`,
+  );
+}
+function claimDetail() {
+  const c = activeCase(),
+    x = c.claim,
+    t = rcClaimTotals(c);
+  if (!x) return;
+  openModal(
+    "Follow the claim, all the way through.",
+    `<div class="between"><h3>${esc(x.id)} · ${esc(c.name)}</h3>${badge(t.stale ? "Stale baseline" : x.status)}</div><div class="table-scroll"><table><thead><tr><th>Work</th><th>Claimed</th><th>Certified</th></tr></thead><tbody>${x.items.map((i) => `<tr><td>${esc(i.label)}</td><td>${rupiah(i.requested)}</td><td>${i.certified === null ? "Not reviewed" : rupiah(i.certified)}</td></tr>`).join("")}</tbody></table></div><div class="notice">${esc(x.certificateNote || x.note)}</div><h3>Authorization</h3><p class="sub">${x.authorization ? `${esc(x.authorization.reference)} · ${rupiah(x.authorization.amount)} · ${esc(x.authorization.actor)}` : "No demo authorization recorded."}</p><h3 class="spaced">External payment records</h3>${x.payments.length ? x.payments.map((p) => `<div class="cost-row"><span>${esc(p.reference)}</span><strong>${rupiah(p.amount)}</strong></div>`).join("") : '<p class="sub">No external payment recorded.</p>'}<small class="helper">All references and amounts in this workflow are fictional. No money is transferred.</small>`,
   );
 }
 const actions = {
-  home: () => navigate(state.role === "bank" ? "dashboard" : "borrower"),
-  intelligence: () => navigate("intelligence"),
-  "export-passport": () => exportPassport(),
   menu: () => {
-    state.menu = !state.menu;
+    ui.menu = !ui.menu;
     render();
   },
-  new: newApplication,
-  export: () => exportCSV(),
-  "export-portfolio": () => exportCSV(true),
-  "close-modal": closeModal,
   notifications: () => {
-    state.notifications = !state.notifications;
+    ui.notifications = !ui.notifications;
     render();
   },
-  prev: () => {
-    state.pagination--;
-    render();
-  },
-  next: () => {
-    state.pagination++;
-    render();
-  },
-  milestones: () => navigate("milestones"),
-  guide: () =>
+  close: closeModal,
+  "new-case": newCase,
+  "request-correction": () => {
+    const c = activeCase();
+    if (
+      ui.role !== "reviewer" ||
+      c.claim?.status !== "Submitted" ||
+      rcClaimTotals(c).stale
+    )
+      return;
     openModal(
-      "Welcome to RenovaCredit",
-      `<div class="stack" style="gap:20px"><p class="sub">A working renovation lending prototype, designed for exploring a clearer credit workflow.</p><div><h3>01 · Originate</h3><p class="sub">Create an application with fictional borrower and project information.</p></div><div><h3>02 · Assess & decide</h3><p class="sub">Explore the risk simulator, review an application, and record a decision with a reviewer note.</p></div><div><h3>03 · Track progress</h3><p class="sub">Approved applications appear in the portfolio. Verify sequential milestones in Disbursements.</p></div><div><h3>04 · Take it with you</h3><p class="sub">Export the register as CSV. Your workspace saves locally, separately on each browser.</p></div></div>`,
-      button("Got it", "close-modal", "check", true),
+      "Ask for the evidence that is missing.",
+      `<div class="notice">This places the demo claim on hold. Nothing can be certified, authorized, or paid until a corrected submission is reviewed.</div><form id="correction-form">${noteField("Correction request", "note", "")}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">Record correction request</button></form>`,
+    );
+  },
+  "revised-claim": () => {
+    const c = activeCase();
+    if (ui.role !== "reviewer" || c.claim?.status !== "Correction requested")
+      return;
+    openModal(
+      "Review a revised demo submission.",
+      `<div class="notice">Simulate receiving a corrected source record. No file is uploaded or authenticated. The claim returns for a new certification review.</div><form id="resubmission-form">${field("Fictional revised source reference", "reference", "", "text", 'maxlength="100" placeholder="DEMO-REV-012"')}${noteField("What was corrected?", "note", "")}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">Record revised demo submission</button></form>`,
+    );
+  },
+  "add-line": () =>
+    openModal(
+      "Add a source-linked scope item.",
+      `<div class="notice">Use a fictional source reference. This mockup does not verify a document or site quantity.</div><form id="add-line-form"><div class="form-grid">${field("Work item", "label", "", "text", 'maxlength="100"')}${field("Specification", "spec", "", "text", 'maxlength="160"')}${field("Quantity", "quantity", 1, "number", 'min="0.01" max="100000" step="0.01"')}<label class="field">Unit<select name="unit"><option>m²</option><option>m³</option><option>point</option><option>package</option><option>unit</option></select></label>${field("Unit rate (IDR)", "rate", 1000000, "number", 'min="0" max="1000000000000" step="1"')}${field("Source reference", "source", "", "text", 'maxlength="140" placeholder="Demo quote · page 1 · item 7"')}</div><p class="form-error" role="alert"></p><button class="btn primary" type="submit">Add unreviewed scope line</button></form>`,
     ),
-  "toggle-notifications": () => {
-    data.settings.notifications = !data.settings.notifications;
-    save();
-    document
-      .querySelector('[role="switch"]')
-      .setAttribute("aria-checked", String(data.settings.notifications));
+  quote: () => sourceQuote(activeCase()),
+  "edit-funding": fundingModal,
+  "new-change": newChange,
+  "certify-claim": certifyModal,
+  "authorize-claim": authorizationModal,
+  "record-payment": paymentModal,
+  "claim-detail": claimDetail,
+  "export-packet": exportModal,
+  "download-json": downloadJSON,
+  "print-packet": printPacket,
+  "packet-review": packetReview,
+  perspective: () =>
+    openModal(
+      "Choose a demo perspective.",
+      `<p class="sub">Explore the handoffs between people. This switch simulates roles; it is not authentication or a production permission boundary.</p><div class="perspective-options vertical">${Object.entries(
+        RC_ROLES,
+      )
+        .map(
+          ([id, r]) =>
+            `<button data-role="${id}" class="${ui.role === id ? "selected" : ""}"><span class="avatar">${r.initials}</span><span><strong>${r.label}</strong><small>${id === "reviewer" ? "Review scope, evidence, and certify work" : id === "owner" ? "Acknowledge scope changes and understand funding" : "Accept packets, authorize claims, record demo payments"}</small></span>${ui.role === id ? ico("check", 17) : ico("arrow", 17)}</button>`,
+        )
+        .join("")}</div>`,
+    ),
+  "accept-budget": () => {
+    const c = activeCase(),
+      r = rcReadiness(c);
+    if (
+      !rcCanReview(ui.role) ||
+      r.lineCount ||
+      c.unknownCosts.length ||
+      r.accepted
+    )
+      return;
+    c.acceptedVersion = c.version;
+    c.packetStatus = "Reviewed";
+    c.status = "Packet ready";
+    c.next = r.docs.length
+      ? "Resolve the remaining evidence reviews"
+      : "Submit the reviewed financing packet";
+    log(
+      c,
+      "Budget baseline reviewed",
+      `Version ${c.version} · ${rupiah(rcBudget(c))} construction`,
+    );
+    render();
+    notify("Budget baseline reviewed. This is separate from credit approval.");
   },
-  "switch-role": () => {
-    setAudience(state.role === "bank" ? "homeowner" : "bank");
+  "add-evidence": () =>
+    openModal(
+      "Add an illustrative record.",
+      `<div class="notice">No real file upload is provided in this mockup. Add a fictional source record to explore the review workflow.</div><form id="add-evidence-form">${field("Evidence type", "type", "", "text", 'maxlength="90" placeholder="e.g. Updated wet-area measurement"')}${field("Fictional filename", "filename", "", "text", 'maxlength="120" placeholder="demo-measurements.pdf"')}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">Add demo record</button></form>`,
+    ),
+  "reconcile-claim": () => {
+    const c = activeCase(),
+      x = c.claim,
+      t = rcClaimTotals(c);
+    if (
+      !x ||
+      ui.role !== "reviewer" ||
+      t.stale ||
+      x.status !== "Paid" ||
+      t.paid !== x.authorization.amount
+    )
+      return;
+    x.status = "Reconciled";
+    c.next = "Continue work and resolve unsupported finishing";
+    log(
+      c,
+      "Demo payment records reconciled",
+      `${x.id} · ${rupiah(t.paid)} matched; ${rupiah(t.requested - t.certified)} remains unsupported`,
+    );
+    render();
+    notify("Authorized amount reconciled. Unsupported work remains visible.");
   },
+  walkthrough: () =>
+    openModal(
+      "From a quote to a clearer decision.",
+      `<div class="walkthrough"><div><span>01</span><section><h3>Review the scope</h3><p>Open Bekasi Family Home. Inspect source references, review a RAB line, and accept the budget baseline.</p></section></div><div><span>02</span><section><h3>Understand the funding</h3><p>See the difference between known cost, owner cash, usable facility, and the uncommitted gap.</p></section></div><div><span>03</span><section><h3>Resolve the evidence</h3><p>Review records with an explicit scope and rationale. A checkmark is never a title, appraisal, or bank verification.</p></section></div><div><span>04</span><section><h3>Connect work to payment</h3><p>Open Bintaro Courtyard. Certify Rp52 jt of a Rp60 jt claim, switch to the lender to authorize, record partial demo payments, and reconcile as reviewer.</p></section></div></div><div class="notice">This interactive mockup uses fictional data, browser storage, and demo role switching. It does not implement the PRD's production security or integrations.</div>`,
+      btn("Explore the workspace", "close", "arrow", true),
+    ),
   reset: () =>
     openModal(
-      "Reset your demo workspace?",
-      `<p class="sub">This removes all local applications, decisions, milestone checks, and profile changes, and restores the sample workspace. Export a CSV first if you want to keep the application register.</p>`,
-      `<button class="btn" data-action="close-modal">Keep my workspace</button><button class="btn danger" data-action="confirm-reset">Reset demo data</button>`,
+      "Restore the fictional sample cases?",
+      `<p class="sub">This removes this mockup's local edits, reviews, events, and payment records. Old prototype data is not touched.</p>`,
+      btn("Keep changes", "close") +
+        btn("Reset sample workspace", "confirm-reset", "history", true),
     ),
   "confirm-reset": () => {
-    data = {
-      apps: structuredClone(defaults),
-      activity: [],
-      settings: {
-        name: "Alex Morgan",
-        email: "alex@example.com",
-        notifications: true,
-      },
-      milestones: [],
-      policy: { ...renovaDefaultPolicy },
-    };
-    data.apps.forEach((a, i) => {
-      a.property = propertyDefaults(a, i, true);
-      a.score = assess(a).score;
-    });
+    store = rcSeed();
     save();
     closeModal();
-    state.role = "bank";
-    state.audience = "bank";
-    navigate("dashboard");
-    toast("Sample workspace restored.");
+    ui.caseId = "RC-026";
+    ui.role = "reviewer";
+    navigate("overview");
+    notify("Sample workspace restored.");
   },
 };
 document.addEventListener("click", (e) => {
-  const el = e.target.closest("button,a,[data-action]");
+  const el = e.target.closest("button,a");
   if (!el) return;
   const d = el.dataset;
   if (d.action) {
     e.preventDefault();
     actions[d.action]?.();
   } else if (d.page) {
+    e.preventDefault();
     navigate(d.page);
-  } else if (d.filter) {
-    state.filter = d.filter;
-    state.pagination = 1;
-    render();
-  } else if (d.range) {
-    state.range = d.range;
-    render();
-  } else if (d.review) {
-    review(d.review);
-  } else if (d.decision) {
-    const a = data.apps.find((x) => x.id === d.id);
-    if (!a || a.status !== "In review") return;
-    if (!isLender()) {
-      toast("Choose a lender workspace to record a credit decision.");
-      return;
-    }
-    if (d.decision === "Approved" && approvalReasons(a).length) {
-      toast("Resolve the policy and evidence gates before approval.");
-      return;
-    }
-    const note = document.querySelector("#review-note").value.trim();
-    if (d.decision === "Rejected" && !note) {
-      document.querySelector("#review-error").textContent =
-        "Please add a reviewer note explaining the decision.";
-      document.querySelector("#review-note").focus();
-      return;
-    }
-    a.status = d.decision;
-    a.note = note;
-    a.decidedAt = today();
-    a.decisionPolicy = { ...data.policy };
-    a.decisionAssessment = assess(a);
-    record(
-      `Application ${d.decision === "Approved" ? "approved" : "declined"}`,
-      a.name,
-    );
+  } else if (d.role) {
+    ui.role = d.role;
     closeModal();
     render();
-    toast(`${a.name} ${d.decision.toLowerCase()}.`);
-  } else if (d.docs) {
-    documentReview(d.docs);
-  } else if (d.milestone) {
-    evidence(d.project, Number(d.milestone));
+    notify(`${RC_ROLES[ui.role].label} demo perspective selected.`);
+  } else if (d.evidenceCase) {
+    ui.caseId = d.evidenceCase;
+    documentModal(d.document);
+  } else if (d.document) {
+    documentModal(d.document);
+  } else if (d.case) {
+    openCase(d.case, d.tab || "scope");
+  } else if (d.tab) {
+    ui.tab = d.tab;
+    render();
+    document.querySelector(`#tab-${ui.tab}`)?.focus();
+  } else if (d.filter) {
+    ui.filter = d.filter;
+    render();
+  } else if (d.line) {
+    reviewLine(d.line);
+  } else if (d.source) {
+    sourceQuote(activeCase(), d.source);
+  } else if (d.change) {
+    const c = activeCase(),
+      x = c.changes.find((x) => x.id === d.change);
+    if (!x) return;
+    if (ui.role === "owner" && !x.ownerAck) {
+      openModal(
+        "Acknowledge the change before it grows.",
+        `<h3>${esc(x.title)}</h3><p class="sub">${esc(x.reason)}</p><div class="modal-amount"><span>Additional cost / schedule</span><strong>${rupiah(x.amount)} · ${x.days} days</strong></div><form id="ack-change-form" data-change="${x.id}"><label class="check-field"><input name="ack" type="checkbox" required>I understand this proposed scope, cost, and time change. This demo acknowledgment is not a financing approval.</label><button class="btn primary" type="submit">Record demo owner acknowledgment</button></form>`,
+      );
+    } else if (
+      ui.role === "reviewer" &&
+      x.ownerAck &&
+      x.status !== "Accepted"
+    ) {
+      openModal(
+        "Review the acknowledged change.",
+        `<h3>${esc(x.title)}</h3><p class="sub">${esc(x.reason)}</p><div class="notice">Accepting this change adds ${rupiah(x.amount)} to the scope and creates a new budget version. The budget must be reviewed again and any old claim baseline becomes stale.</div><form id="accept-change-form" data-change="${x.id}">${noteField("Review rationale", "note", "")}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">Accept change for budget re-review</button></form>`,
+      );
+    }
   }
 });
 document.addEventListener("submit", (e) => {
-  const form = e.target;
   e.preventDefault();
-  if (form.id === "risk-form") {
-    document.querySelector("#risk-result").innerHTML = riskResult(
-      assess(numbers(form)),
-    );
-    toast("Assessment updated.");
-  } else if (form.id === "new-form") {
-    const f = new FormData(form);
-    const text = {
-      name: String(f.get("project")).trim(),
-      borrower: String(f.get("borrower")).trim(),
-      location: String(f.get("location")).trim(),
-    };
-    if (Object.values(text).some((v) => !v)) {
-      document.querySelector("#new-error").textContent =
-        "Please enter a project name, borrower name, and location.";
+  const form = e.target,
+    f = new FormData(form),
+    c = activeCase();
+  const value = (n) => Number(f.get(n));
+  const text = (n) => String(f.get(n) || "").trim();
+  if (form.id === "correction-form") {
+    if (
+      ui.role !== "reviewer" ||
+      c.claim?.status !== "Submitted" ||
+      rcClaimTotals(c).stale ||
+      !text("note")
+    ) {
+      formError(form, "A reviewer and correction rationale are required.");
       return;
     }
-    const values = numbers(form);
-    const r = assess(values);
-    const a = {
-      id: `RC-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
-      ...text,
-      ...values,
-      score: r.score,
-      status: "In review",
-      progress: 0,
-      created: today().slice(0, 10),
-    };
-    a.property = propertyDefaults(a, 0, false);
-    state.intelligenceProject = a.id;
-    data.apps.unshift(a);
-    record("New application received", a.name);
-    closeModal();
-    navigate("applications");
-    toast(`${a.name} created · Initial score ${a.score}/100`);
-  } else if (form.id === "settings-form") {
-    const f = new FormData(form);
-    const name = String(f.get("name")).trim();
-    if (!name) {
-      form.elements.name.setCustomValidity("Enter a name.");
-      form.elements.name.reportValidity();
-      form.elements.name.setCustomValidity("");
-      return;
-    }
-    data.settings.name = name;
-    data.settings.email = String(f.get("email")).trim();
-    save();
-    render();
-    toast("Profile saved in this browser.");
-  } else if (form.id === "evidence-form") {
-    const project = form.dataset.project;
-    const stage = Number(form.dataset.stage);
-    const completed = data.milestones.filter((m) => m.project === project);
-    if (completed.length !== stage) {
-      toast("Complete the preceding milestone first.");
-      return;
-    }
-    data.milestones.push({ project, stage, time: today() });
-    record(
-      "Milestone evidence verified",
-      data.apps.find((a) => a.id === project).name,
+    c.claim.status = "Correction requested";
+    c.claim.correctionNote = text("note");
+    c.next = "Await corrected claim evidence";
+    log(
+      c,
+      "Demo claim returned for correction",
+      `${c.claim.id} · ${text("note")}`,
     );
     closeModal();
     render();
-    toast("Demo verification recorded. No funds transferred.");
-  }
-});
-document.addEventListener("change", (e) => {
-  if (e.target.id === "status-filter") {
-    state.filter = e.target.value;
-    state.pagination = 1;
+    notify("Claim held for correction. No payment action is available.");
+  } else if (form.id === "resubmission-form") {
+    if (
+      ui.role !== "reviewer" ||
+      c.claim?.status !== "Correction requested" ||
+      rcClaimTotals(c).stale ||
+      !text("note") ||
+      !text("reference")
+    ) {
+      formError(
+        form,
+        "Record a revised source reference and a correction note.",
+      );
+      return;
+    }
+    c.claim.status = "Submitted";
+    c.claim.revisedSource = text("reference");
+    c.next = "Review the revised milestone claim";
+    log(
+      c,
+      "Revised demo claim received",
+      `${text("reference")} · ${text("note")}`,
+    );
+    closeModal();
     render();
-  }
-  if (e.target.id === "project-select") {
-    state.selectedProject = e.target.value;
+    notify("Revised submission recorded. Certification review is required.");
+  } else if (form.id === "add-line-form") {
+    const q = value("quantity"),
+      rate = value("rate");
+    if (
+      ui.role !== "reviewer" ||
+      !text("label") ||
+      !text("spec") ||
+      !text("source") ||
+      !Number.isFinite(q) ||
+      q <= 0 ||
+      !safeAmount(rate) ||
+      !safeAmount(Math.round(q * rate))
+    ) {
+      formError(
+        form,
+        "Complete the description, source reference, quantity, and integer IDR rate.",
+      );
+      return;
+    }
+    rcInvalidate(c);
+    c.lines.push({
+      id: `${c.id}-L${Date.now()}`,
+      label: text("label"),
+      spec: text("spec"),
+      quantity: q,
+      unit: text("unit"),
+      rate,
+      originalQuantity: q,
+      originalRate: rate,
+      source: text("source"),
+      reviewed: false,
+    });
+    log(
+      c,
+      "Unreviewed scope line added",
+      `${text("label")} · budget v${c.version}`,
+    );
+    closeModal();
     render();
+    notify("Source-linked line added. The revised budget needs review.");
+  } else if (form.id === "line-form") {
+    if (ui.role !== "reviewer") return;
+    const l = c.lines.find((l) => l.id === form.dataset.line),
+      q = value("quantity"),
+      rate = value("rate");
+    if (
+      !l ||
+      !Number.isFinite(q) ||
+      q <= 0 ||
+      q > 100000 ||
+      !safeAmount(rate) ||
+      !safeAmount(Math.round(q * rate)) ||
+      !text("note")
+    ) {
+      formError(
+        form,
+        "Enter valid quantities, integer IDR rates, and a review rationale.",
+      );
+      return;
+    }
+    const changed = q !== l.quantity || rate !== l.rate;
+    if (changed) rcInvalidate(c);
+    l.quantity = q;
+    l.rate = rate;
+    l.reviewed = true;
+    l.reviewNote = text("note");
+    l.reviewedBy = RC_ROLES[ui.role].name;
+    log(
+      c,
+      changed ? "Scope line revised and reviewed" : "Scope line reviewed",
+      `${l.label} · ${q} ${l.unit} × ${rupiah(rate)} · ${text("note")}`,
+    );
+    closeModal();
+    render();
+    notify(
+      changed
+        ? "New budget version created. Prior baseline preserved."
+        : "Reviewed line recorded.",
+    );
+  } else if (form.id === "document-form") {
+    if (ui.role !== "reviewer") return;
+    const d = c.documents.find((d) => d.id === form.dataset.document),
+      status = text("status");
+    if (
+      !d ||
+      ![
+        "Received",
+        "Needs correction",
+        "Reviewer accepted",
+        "Not applicable",
+        "Missing",
+      ].includes(status) ||
+      !text("note")
+    ) {
+      formError(form, "Choose a review state and give a rationale.");
+      return;
+    }
+    d.status = status;
+    d.note = text("note");
+    d.reviewer = RC_ROLES[ui.role].name;
+    d.reviewedAt = new Date().toISOString();
+    if (!["Reviewer accepted", "Not applicable"].includes(status)) {
+      c.packetStatus = "Draft";
+      if (c.facilityActive) {
+        c.facilityActive = false;
+        c.creditStatus = "Re-review required";
+      }
+    }
+    log(c, "Demo evidence review recorded", `${d.type}: ${status} · ${d.note}`);
+    closeModal();
+    render();
+    notify(
+      "Evidence state and rationale saved. No real verification occurred.",
+    );
+  } else if (form.id === "funding-form") {
+    const cash = value("cash"),
+      reserve = value("contingency"),
+      fees = value("fees");
+    if (
+      !safeAmount(cash) ||
+      !safeAmount(fees) ||
+      !Number.isInteger(reserve) ||
+      reserve < 0 ||
+      reserve > 50 ||
+      !text("notes")
+    ) {
+      formError(
+        form,
+        "Enter integer IDR amounts, a reserve from 0–50%, and the cost assumptions.",
+      );
+      return;
+    }
+    const budgetChanged = reserve !== c.contingency || fees !== c.fees;
+    const active = ui.role === "lender" && f.has("active"),
+      facility = ui.role === "lender" ? value("facility") : c.facility;
+    const currentR = rcReadiness(c);
+    if (
+      ui.role === "lender" &&
+      (!safeAmount(facility) ||
+        (active &&
+          (!currentR.accepted ||
+            !currentR.ready ||
+            c.packetStatus !== "Accepted" ||
+            budgetChanged ||
+            text("unknown"))))
+    ) {
+      formError(
+        form,
+        "Accept the current budget and financing packet before recording a usable facility. Changing budget costs requires re-review first.",
+      );
+      return;
+    }
+    if (active && !text("facilityReference")) {
+      formError(
+        form,
+        "Record a fictional facility reference before marking it usable.",
+      );
+      return;
+    }
+    if (
+      active &&
+      facility >
+        Math.max(
+          0,
+          rcBudget(c) + Math.round((rcBudget(c) * reserve) / 100) + fees - cash,
+        )
+    ) {
+      formError(
+        form,
+        "This renovation-only demo facility cannot exceed the cost less committed owner cash.",
+      );
+      return;
+    }
+    if (budgetChanged) rcInvalidate(c);
+    if (c.cash !== cash && c.facilityActive && !active) {
+      c.facilityActive = false;
+      c.creditStatus = "Re-review required";
+    }
+    c.cash = cash;
+    c.fees = fees;
+    c.contingency = reserve;
+    c.fundingNotes = text("notes");
+    c.unknownCosts = text("unknown") ? [text("unknown")] : [];
+    if (c.unknownCosts.length) {
+      c.packetStatus = "Draft";
+      c.facilityActive = false;
+      c.creditStatus = "Re-review required";
+    }
+    if (ui.role === "lender") {
+      c.facility = facility;
+      c.facilityReference = text("facilityReference");
+      c.facilityActive = active;
+      c.creditStatus = active ? "Facility active" : "Conditional";
+      if (active) {
+        c.status = "Funding ready";
+        c.next = "Agree the start date and first milestone evidence";
+      }
+    }
+    log(
+      c,
+      "Funding assumptions updated",
+      `${rupiah(c.cash)} owner cash · ${c.contingency}% reserve · ${c.facilityActive ? "demo facility usable" : "no usable facility"}`,
+    );
+    closeModal();
+    render();
+    notify(
+      "Funding assumptions saved. Only usable commitments reduce the gap.",
+    );
+  } else if (form.id === "new-case-form") {
+    const name = text("name"),
+      owner = text("owner"),
+      location = text("location"),
+      budget = value("budget"),
+      cash = value("cash");
+    if (
+      !name ||
+      !owner ||
+      !location ||
+      !text("objective") ||
+      !safeAmount(budget) ||
+      budget < 1000000 ||
+      !safeAmount(cash)
+    ) {
+      formError(
+        form,
+        "Complete the case details with fictional names and valid integer IDR amounts.",
+      );
+      return;
+    }
+    const source = rcSeed().cases[0],
+      id = `RC-${Date.now().toString(36).toUpperCase()}`;
+    const fresh = {
+      ...structuredClone(source),
+      id,
+      name,
+      owner,
+      location,
+      status: "Scope review",
+      version: 1,
+      acceptedVersion: null,
+      packetStatus: "Draft",
+      creditStatus: "Not requested",
+      facility: 0,
+      facilityActive: false,
+      cash,
+      fees: 0,
+      contingency: 10,
+      next: text("scope").startsWith("Structural")
+        ? "Specialist scope review required"
+        : "Replace the provisional budget with source-backed scope",
+      unknownCosts: ["Fees and site-specific costs not priced"],
+      lines: [
+        {
+          id: `${id}-L1`,
+          label: "Provisional renovation scope",
+          spec: text("objective"),
+          quantity: 1,
+          unit: "package",
+          rate: budget,
+          source: "Owner planning input · no quote yet",
+          originalQuantity: 1,
+          originalRate: budget,
+          reviewed: false,
+        },
+      ],
+      documents: source.documents.map((d) => ({
+        ...d,
+        name: `demo-${d.id}-not-received`,
+        status: "Missing",
+        reviewer: null,
+        note: "No supporting demo record received.",
+        version: 1,
+      })),
+      changes: [],
+      claim: null,
+      history: [],
+      snapshots: [],
+    };
+    store.cases.unshift(fresh);
+    log(
+      fresh,
+      "Draft renovation case created",
+      `${text("scope")} · ${text("objective")}`,
+    );
+    closeModal();
+    openCase(id);
+    notify("Draft case created. The provisional amount is not a reviewed RAB.");
+  } else if (form.id === "add-evidence-form") {
+    if (!text("type") || !text("filename")) {
+      formError(form, "Enter a fictional record type and filename.");
+      return;
+    }
+    c.documents.push({
+      id: `doc-${Date.now()}`,
+      name: text("filename"),
+      type: text("type"),
+      status: "Received",
+      version: 1,
+      source: "User-created illustrative record",
+      reviewer: null,
+      note: "Demo metadata only; no file has been uploaded.",
+    });
+    c.packetStatus = "Draft";
+    log(c, "Illustrative evidence record added", text("type"));
+    closeModal();
+    render();
+    notify("Demo record added. No real file uploaded.");
+  } else if (form.id === "packet-form") {
+    const r = rcReadiness(c);
+    if (ui.role !== "lender" || !r.ready || !r.accepted || !text("note")) {
+      formError(
+        form,
+        "Complete the budget and evidence reviews, then use the lender perspective.",
+      );
+      return;
+    }
+    c.packetStatus = "Accepted";
+    c.status = "Awaiting lender";
+    c.next = "Record lender conditions and facility availability";
+    log(
+      c,
+      "Demo packet accepted for lender review",
+      `Budget v${c.version} · ${text("note")} · not a credit approval`,
+    );
+    closeModal();
+    render();
+    notify("Demo packet accepted. No credit approval is implied.");
+  } else if (form.id === "change-form") {
+    if (
+      !text("title") ||
+      !text("reason") ||
+      !safeAmount(value("amount")) ||
+      value("amount") <= 0 ||
+      !Number.isInteger(value("days")) ||
+      value("days") < 0 ||
+      value("days") > 365
+    ) {
+      formError(
+        form,
+        "Enter a change, rationale, integer IDR amount, and valid days.",
+      );
+      return;
+    }
+    c.changes.push({
+      id: `CO-${Date.now().toString(36).toUpperCase()}`,
+      title: text("title"),
+      reason: text("reason"),
+      amount: value("amount"),
+      days: value("days"),
+      ownerAck: false,
+      status: "Awaiting owner",
+    });
+    log(
+      c,
+      "Scope change proposed",
+      `${text("title")} · ${rupiah(value("amount"))}`,
+    );
+    closeModal();
+    render();
+    notify("Proposed change saved. Owner acknowledgment is required.");
+  } else if (form.id === "ack-change-form") {
+    const x = c.changes.find((x) => x.id === form.dataset.change);
+    if (ui.role !== "owner" || !x || !f.has("ack") || x.status === "Accepted")
+      return;
+    x.ownerAck = true;
+    x.status = "Awaiting review";
+    log(
+      c,
+      "Demo owner acknowledged a scope change",
+      `${x.title} · ${rupiah(x.amount)} · ${x.days} days`,
+    );
+    closeModal();
+    render();
+    notify("Acknowledgment recorded. Reviewer acceptance is still required.");
+  } else if (form.id === "accept-change-form") {
+    const x = c.changes.find((x) => x.id === form.dataset.change);
+    if (
+      ui.role !== "reviewer" ||
+      !x ||
+      !x.ownerAck ||
+      x.status === "Accepted" ||
+      !text("note")
+    ) {
+      formError(
+        form,
+        "Owner acknowledgment and a reviewer rationale are required.",
+      );
+      return;
+    }
+    rcInvalidate(c);
+    x.status = "Accepted";
+    x.reviewNote = text("note");
+    c.lines.push({
+      id: `${c.id}-${x.id}`,
+      label: x.title,
+      spec: x.reason,
+      quantity: 1,
+      unit: "package",
+      rate: x.amount,
+      originalQuantity: 1,
+      originalRate: x.amount,
+      source: `${x.id} · owner acknowledgment`,
+      reviewed: true,
+      reviewedBy: RC_ROLES[ui.role].name,
+    });
+    log(
+      c,
+      "Acknowledged change accepted into revised scope",
+      `${x.id} · budget v${c.version} needs re-review`,
+    );
+    closeModal();
+    render();
+    notify(
+      "New budget version created. Existing claim baseline must be reviewed again.",
+    );
+  } else if (form.id === "certify-form") {
+    const x = c.claim,
+      t = rcClaimTotals(c);
+    if (!x || ui.role !== "reviewer" || t.stale || x.status !== "Submitted")
+      return;
+    const values = x.items.map((i, n) => value(`certified-${n}`));
+    if (
+      !text("note") ||
+      values.some(
+        (v, n) =>
+          !safeAmount(v) ||
+          v > x.items[n].requested ||
+          v >
+            Math.round(
+              c.lines[x.items[n].line].quantity * c.lines[x.items[n].line].rate,
+            ),
+      ) ||
+      values.reduce((s, v) => s + v, 0) <= 0
+    ) {
+      formError(
+        form,
+        "Certified amounts must be positive in total and within claimed and accepted scope, with a rationale.",
+      );
+      return;
+    }
+    x.items.forEach((i, n) => (i.certified = values[n]));
+    x.status = "Certified";
+    x.certificateNote = text("note");
+    x.certifiedBy = RC_ROLES[ui.role].name;
+    log(
+      c,
+      "Demo claim certified",
+      `${x.id} · ${rupiah(values.reduce((s, v) => s + v, 0))} supported · ${text("note")}`,
+    );
+    closeModal();
+    render();
+    notify(
+      "Certification recorded. Authorization and payment remain separate.",
+    );
+  } else if (form.id === "authorize-form") {
+    const x = c.claim,
+      t = rcClaimTotals(c);
+    if (!x || ui.role !== "lender" || t.stale || x.status !== "Certified")
+      return;
+    if (
+      !text("reference") ||
+      !text("note") ||
+      x.certifiedBy === RC_ROLES[ui.role].name ||
+      !c.facilityActive ||
+      t.certified > rcFinance(c).undrawn
+    ) {
+      formError(
+        form,
+        "Use a separate lender, an active demo facility, a unique reference, and a rationale within the usable amount.",
+      );
+      return;
+    }
+    if (
+      store.cases.some(
+        (z) =>
+          z.claim?.authorization?.reference.toLowerCase() ===
+          text("reference").toLowerCase(),
+      )
+    ) {
+      formError(form, "This authorization reference is already recorded.");
+      return;
+    }
+    x.authorization = {
+      reference: text("reference"),
+      amount: t.certified,
+      actor: RC_ROLES[ui.role].name,
+      note: text("note"),
+      time: new Date().toISOString(),
+      budgetVersion: c.version,
+    };
+    x.status = "Authorized";
+    log(
+      c,
+      "Demo claim authorization recorded",
+      `${x.id} · ${rupiah(t.certified)} · ${text("reference")}`,
+    );
+    closeModal();
+    render();
+    notify("Demo authorization recorded. No money has moved.");
+  } else if (form.id === "payment-form") {
+    const x = c.claim,
+      t = rcClaimTotals(c),
+      amount = value("amount"),
+      ref = text("reference");
+    if (
+      !x ||
+      ui.role !== "lender" ||
+      t.stale ||
+      !["Authorized", "Partially paid"].includes(x.status)
+    )
+      return;
+    if (
+      !ref ||
+      !safeAmount(amount) ||
+      amount <= 0 ||
+      amount > x.authorization.amount - t.paid
+    ) {
+      formError(
+        form,
+        "Enter a reference and a positive integer amount within the remaining authorization.",
+      );
+      return;
+    }
+    if (
+      store.cases.some((z) =>
+        z.claim?.payments.some(
+          (p) => p.reference.toLowerCase() === ref.toLowerCase(),
+        ),
+      )
+    ) {
+      formError(
+        form,
+        "This external payment reference is already recorded. Duplicate records are not allowed.",
+      );
+      return;
+    }
+    x.payments.push({
+      reference: ref,
+      amount,
+      recordedBy: RC_ROLES[ui.role].name,
+      time: new Date().toISOString(),
+      fictional: true,
+    });
+    x.status =
+      rcClaimTotals(c).paid === x.authorization.amount
+        ? "Paid"
+        : "Partially paid";
+    log(
+      c,
+      "Fictional external payment recorded",
+      `${x.id} · ${rupiah(amount)} · ${ref} · no transfer performed`,
+    );
+    closeModal();
+    render();
+    notify("Fictional external payment recorded. No funds transferred.");
   }
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "global-search") {
-    const input = e.target;
-    state.query = input.value;
-    state.page = "applications";
-    state.pagination = 1;
-    state.filter = "All applications";
+    const q = e.target.value;
+    ui.page = "cases";
+    ui.query = q;
+    ui.filter = "All cases";
     render();
-    const next = document.querySelector("#global-search");
-    next.focus();
-    next.setSelectionRange(next.value.length, next.value.length);
-  }
-  if (e.target.id === "queue-search") {
-    state.query = e.target.value;
-    state.pagination = 1;
-    document.querySelector("#queue-table").innerHTML = applicationTable();
-    const count = e.target.parentElement.querySelector(".sub");
-    if (count) count.textContent = `${filteredApps().length} applications`;
+    const input = document.querySelector("#global-search");
+    input.value = q;
+    input.focus();
+    input.setSelectionRange(q.length, q.length);
+  } else if (e.target.id === "case-search") {
+    ui.query = e.target.value;
+    document.querySelector("#case-results").innerHTML =
+      caseTable(filteredCases());
   }
 });
 document.addEventListener("keydown", (e) => {
   const modal = document.querySelector(".modal");
   if (e.key === "Escape") {
     if (modal) closeModal();
-    else if (state.menu || state.notifications) {
-      state.menu = false;
-      state.notifications = false;
+    else if (ui.menu || ui.notifications) {
+      ui.menu = false;
+      ui.notifications = false;
       render();
     }
   }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
     e.preventDefault();
-    document.querySelector("#global-search")?.focus();
+    if (window.innerWidth <= 1050) {
+      navigate("cases");
+      document.querySelector("#case-search")?.focus();
+    } else document.querySelector("#global-search")?.focus();
   }
-  if (e.key === "Tab" && modal) {
-    const focusable = [
-      ...modal.querySelectorAll("button,input,select,textarea,a[href]"),
-    ].filter((el) => !el.disabled);
-    const first = focusable[0],
-      last = focusable.at(-1);
+  if (
+    e.target.getAttribute("role") === "tab" &&
+    ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
+  ) {
+    e.preventDefault();
+    const tabs = ["scope", "funding", "evidence", "changes", "history"],
+      n = tabs.indexOf(ui.tab);
+    ui.tab =
+      e.key === "Home"
+        ? tabs[0]
+        : e.key === "End"
+          ? tabs.at(-1)
+          : tabs[(n + (e.key === "ArrowRight" ? 1 : 4)) % 5];
+    render();
+    document.querySelector(`#tab-${ui.tab}`).focus();
+  }
+  if (modal && e.key === "Tab") {
+    const all = [
+      ...modal.querySelectorAll("button,input,textarea,select,a[href]"),
+    ].filter((el) => !el.disabled && el.getClientRects().length);
+    const first = all[0],
+      last = all.at(-1);
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();

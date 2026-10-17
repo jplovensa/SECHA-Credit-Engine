@@ -1,10 +1,10 @@
 {
   "name": "renovacredit",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "RenovaCredit property intelligence and renovation financing prototype",
+  "description": "RenovaCredit evidence-led renovation finance workflow mockup",
   "scripts": {
-    "check": "node --check app.js && node --check intelligence.js",
+    "check": "node --check app.js && node --check model.js",
     "test": "node tests/smoke.cjs"
   },
   "devDependencies": {

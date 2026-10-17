@@ -22,7 +22,7 @@ const server = http.createServer(async (req, res) => {
     }
     const file = pathname.slice(prefix.length) || "index.html";
     if (
-      !/^(index\.html|app\.js|intelligence\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
+      !/^(index\.html|app\.js|model\.js|styles\.css|assets\/[a-zA-Z0-9/_.-]+)$/.test(
         file,
       ) ||
       file.includes("..")
@@ -49,9 +49,10 @@ const server = http.createServer(async (req, res) => {
       args: ["--no-sandbox"],
     });
     const context = await browser.newContext({
-      viewport: { width: 1440, height: 1000 },
-    });
-    const page = await context.newPage();
+        viewport: { width: 1440, height: 1000 },
+        reducedMotion: "reduce",
+      }),
+      page = await context.newPage();
     const base = `http://127.0.0.1:${server.address().port}`;
     const errors = [],
       external = [],
@@ -64,325 +65,413 @@ const server = http.createServer(async (req, res) => {
       if (r.status() >= 400) failures.push(`${r.status()} ${r.url()}`);
     });
     await page.goto(base + prefix);
-    assert.equal(await page.locator(".metric").count(), 3);
-    await page.locator('.sidebar [data-page="reports"]').click();
     await page.evaluate(() => document.fonts.ready);
-    assert.ok(
+    assert.equal(await page.locator(".stat").count(), 4);
+    assert.equal(await page.locator(".action-item").count(), 4);
+    assert.equal(
       await page.evaluate(() => document.fonts.check("400 13px Inter")),
-    );
-    await page.locator('[data-range="1y"]').click();
-    assert.match(
-      await page.locator(".chart svg").getAttribute("aria-label"),
-      /24 billion/,
-    );
-    console.log(
-      "PASS: GitHub Pages subpath, local fonts, simplified dashboard and report chart controls",
-    );
-
-    await page.locator('.sidebar [data-page="dashboard"]').click();
-    await page.getByRole("button", { name: "New application" }).click();
-    await page.locator('[name="project"]').fill("QA Garden Residence");
-    await page.locator('[name="borrower"]').fill("Demo Borrower");
-    await page.locator('[name="location"]').fill("Kebayoran, Jakarta");
-    await page
-      .getByRole("button", { name: "Create & assess application" })
-      .click();
-    await page.locator("#queue-search").fill("QA Garden");
-    assert.equal(await page.locator("tbody tr").count(), 1);
-    await page
-      .getByRole("button", { name: "Review QA Garden Residence" })
-      .click();
-    assert.equal(
-      await page
-        .getByRole("button", { name: "Approve application", exact: true })
-        .isDisabled(),
       true,
     );
-    await page.getByRole("button", { name: "Review demo documents" }).click();
-    for (const box of await page.locator("#documents-form input").all())
-      await box.check();
-    await page
-      .getByRole("button", { name: "Save demo evidence checks" })
-      .click();
-
-    await page
-      .getByRole("button", { name: "Approve application", exact: true })
-      .click();
-    assert.match(await page.locator("tbody").textContent(), /Approved/);
-    await page.reload();
-    await page.locator('.sidebar [data-page="portfolio"]').click();
-    assert.match(
-      await page.locator(".project-grid").textContent(),
-      /QA Garden Residence/,
-    );
-    console.log("PASS: application creation, search, approval and persistence");
-
-    await page.locator('.sidebar [data-page="applications"]').click();
-    await page
-      .getByRole("button", { name: "Review Menteng Heritage", exact: true })
-      .click();
-    await page.getByRole("button", { name: "Decline", exact: true }).click();
-    assert.match(
-      await page.locator("#review-error").textContent(),
-      /reviewer note/,
-    );
-    await page
-      .locator("#review-note")
-      .fill("=Sample note to exercise CSV formula protection");
-    await page.getByRole("button", { name: "Decline", exact: true }).click();
-    assert.equal(await page.locator(".modal").count(), 0);
-    await page
-      .getByRole("button", { name: "Review Kemang Townhouse", exact: true })
-      .click();
     assert.equal(
-      await page
-        .getByRole("button", { name: "Approve application", exact: true })
-        .count(),
+      await page.getByText("RenovaScore", { exact: false }).count(),
       0,
     );
-    await page
-      .getByRole("button", { name: "Mark demo documents complete" })
-      .click();
-    for (const box of await page.locator("#documents-form input").all())
-      await box.check();
-    await page
-      .getByRole("button", { name: "Save demo evidence checks" })
-      .click();
+    const initial = await page.evaluate(() => rcFinance(store.cases[0]));
+    assert.equal(initial.total, 270000000);
+    assert.equal(initial.gap, 240000000);
+    console.log(
+      "PASS: project-subpath hosting, local fonts, action dashboard and IDR funding arithmetic",
+    );
+    const role = async (name) => {
+      await page.locator(".workspace-context .perspective").click();
+      await page.locator(`.modal [data-role="${name}"]`).click();
+    };
+    const caseUI = async (name) => {
+      await page.locator('.sidebar [data-page="cases"]').click();
+      await page
+        .getByRole("button", { name: `Open ${name}`, exact: true })
+        .click();
+    };
+    await caseUI("Bekasi Family Home");
+    assert.equal(await page.getByRole("tab").count(), 5);
     assert.equal(
       await page
-        .getByRole("button", { name: "Approve application", exact: true })
+        .getByRole("button", { name: "Accept reviewed budget", exact: true })
         .isDisabled(),
       true,
-      "Evidence alone cannot override failed credit policy",
     );
-    await page.keyboard.press("Escape");
-    console.log("PASS: reviewer note requirement and pending-document gate");
-
-    await page.locator('.sidebar [data-page="engine"]').click();
-    await page.locator('[name="amount"]').fill("2000");
-    await page.locator('[name="value"]').fill("1000");
-    await page.getByRole("button", { name: "Run assessment" }).click();
-    assert.match(
-      await page.locator("#risk-result").textContent(),
-      /Outside policy/,
-    );
-    await page.locator('[name="amount"]').fill("500");
-    await page.locator('[name="value"]').fill("2000");
-    await page.getByRole("button", { name: "Run assessment" }).click();
-    assert.match(
-      await page.locator("#risk-result").textContent(),
-      /Eligible for review/,
-    );
-    // Independent expected payment: IDR 500M, 1% monthly, 60 monthly payments.
-    const expected = (500 * 0.01) / (1 - Math.pow(1.01, -60));
-    assert.match(
-      await page.locator(".decision-callout").first().textContent(),
-      new RegExp(expected.toFixed(1) + "M"),
-    );
-    console.log(
-      "PASS: risk policy boundaries and amortized repayment calculation",
-    );
-
-    await page.locator('.sidebar [data-page="milestones"]').click();
-    await page.getByRole("button", { name: "Review evidence" }).click();
-    await page
-      .getByRole("button", { name: "Record demo verification" })
-      .click();
+    await page.locator("[data-source]").first().click();
     assert.equal(
-      await page.locator(".modal").count(),
+      await page.locator(".quote-paper .source-highlight").count(),
       1,
-      "Unchecked evidence must prevent submission",
-    );
-    const checkboxes = page.locator("#evidence-form input");
-    for (let i = 0; i < 3; i++) await checkboxes.nth(i).check();
-    await page
-      .getByRole("button", { name: "Record demo verification" })
-      .click();
-    assert.match(
-      await page.locator(".timeline").textContent(),
-      /Evidence verified/,
-    );
-    assert.equal(await page.locator('[data-milestone="1"]').count(), 1);
-    assert.equal(await page.locator('[data-milestone="2"]').count(), 0);
-    console.log("PASS: evidence requirements and sequential milestones");
-
-    await page.locator('.sidebar [data-page="reports"]').first().click();
-    const download = page.waitForEvent("download");
-    await page
-      .getByRole("button", { name: "Download CSV", exact: true })
-      .click();
-    const file = await download;
-    assert.match(file.suggestedFilename(), /^renovacredit-applications-/);
-    const csv = await fs.readFile(await file.path(), "utf8");
-    assert.match(csv, /QA Garden Residence/);
-    assert.match(csv, /'=Sample note/);
-    assert.match(
-      await page.locator(".content").textContent(),
-      /Application declined/,
-    );
-    console.log(
-      "PASS: decision trail, CSV contents and spreadsheet formula escaping",
-    );
-
-    await page.locator('.sidebar [data-page="settings"]').first().click();
-    await page.locator('[name="name"]').fill("Prototype Reviewer");
-    await page.getByRole("button", { name: "Save profile" }).click();
-    await page.reload();
-    assert.match(
-      await page.locator(".profile").textContent(),
-      /Prototype Reviewer/,
-    );
-    await page.locator('.sidebar [data-page="settings"]').first().click();
-    await page.getByRole("button", { name: "Switch view" }).click();
-    assert.match(await page.locator("h1").textContent(), /next chapter/);
-    console.log("PASS: saved profile and borrower preview");
-
-    await page.locator('[data-audience="bank"]').click();
-    await page.locator('.sidebar [data-page="intelligence"]').click();
-    await page
-      .locator("#intelligence-select")
-      .selectOption({ label: "QA Garden Residence" });
-    for (const [name, value] of Object.entries({
-      currentValue: 1000,
-      afterValue: 1500,
-      renovation: 200,
-      contingency: 10,
-      fees: 20,
-      monthlyRent: 10,
-      occupancy: 90,
-      opex: 20,
-      marketDiscount: 10,
-      costOverrun: 15,
-    })) {
-      await page.locator(`#property-form [name="${name}"]`).fill(String(value));
-    }
-    await page
-      .getByRole("button", { name: "Recalculate & save assumptions" })
-      .click();
-    const economics = await page.evaluate(() => {
-      const a = data.apps.find((a) => a.name === "QA Garden Residence");
-      return {
-        r: propertyAnalysis(a),
-        status: a.status,
-        evidence: a.property.evidence,
-        previous: a.previousDecision,
-      };
-    });
-    assert.equal(economics.r.totalCost, 1240);
-    assert.equal(economics.r.surplus, 260);
-    assert.equal(economics.r.stressedSurplus, 80);
-    assert.ok(Math.abs(economics.r.netRent - 86.4) < 1e-8);
-    assert.ok(Math.abs(economics.r.yieldRate - (86.4 / 1240) * 100) < 1e-8);
-    assert.equal(
-      economics.status,
-      "In review",
-      "Changed underwriting inputs invalidate an approval",
-    );
-    assert.equal(economics.evidence.valuation, false);
-    assert.equal(economics.evidence.rab, false);
-    assert.equal(economics.previous.policy.version, 1);
-    await page.locator('[name="marketDiscount"]').fill("100");
-    await page
-      .getByRole("button", { name: "Recalculate & save assumptions" })
-      .click();
-    assert.ok(
-      (await page.evaluate(
-        () => propertyAnalysis(intelligenceProject()).stressedSurplus,
-      )) < 0,
-    );
-    assert.match(
-      await page.locator(".intelligence-layout").textContent(),
-      /downside erodes/,
-    );
-    console.log(
-      "PASS: project economics, rental yield, negative stress, approval invalidation and evidence refresh",
-    );
-
-    await page.locator('.sidebar [data-page="passport"]').click();
-    const passportDownload = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download passport JSON" }).click();
-    const passportFile = await passportDownload;
-    const passport = JSON.parse(
-      await fs.readFile(await passportFile.path(), "utf8"),
-    );
-    assert.equal(passport.schema, "RC-PASSPORT/1.0");
-    assert.equal(passport.property.name, "QA Garden Residence");
-    assert.equal(passport.model.analysis.surplus, 260);
-    assert.equal(passport.decision.previousDecision.policy.version, 1);
-    assert.equal(passport.prototype, true);
-    assert.equal(passport.property.evidence.rab, false);
-    console.log(
-      "PASS: portable passport contains provenance, evidence, calculations and prior decision policy",
-    );
-
-    await page.locator('[data-audience="investor"]').click();
-    assert.equal(await page.locator(".comparison-panel tbody tr").count(), 4);
-    await page.locator('.sidebar [data-page="applications"]').click();
-    await page
-      .getByRole("button", { name: "Review QA Garden Residence" })
-      .click();
-    assert.equal(
-      await page
-        .getByRole("button", { name: "Approve application", exact: true })
-        .count(),
-      0,
     );
     await page.keyboard.press("Escape");
-    await page.locator('.sidebar [data-page="intelligence"]').click();
     await page
-      .getByRole("button", { name: "Lending policy", exact: true })
+      .getByRole("button", {
+        name: "Review Waterproofing & wet areas",
+        exact: true,
+      })
+      .click();
+    await page
+      .locator('[name="note"]')
+      .fill("Demo measurement agrees with the illustrative quote.");
+    await page.getByRole("button", { name: "Confirm reviewed line" }).click();
+    await page
+      .getByRole("button", { name: "Accept reviewed budget", exact: true })
+      .click();
+    assert.equal(await page.evaluate(() => activeCase().acceptedVersion), 2);
+    await page.getByRole("tab", { name: /^Evidence/ }).click();
+    for (const id of ["quote", "site", "authority", "permit"]) {
+      await page.locator(`.document-item[data-document="${id}"]`).click();
+      await page
+        .locator('[name="status"]')
+        .selectOption(id === "permit" ? "Not applicable" : "Reviewer accepted");
+      await page
+        .locator('[name="note"]')
+        .fill(
+          id === "permit"
+            ? "Demo specialist rationale: no structural change for this fictional scope."
+            : "Illustrative record reviewed in the demo; no actual professional verification.",
+        );
+      await page
+        .getByRole("button", { name: "Save demo evidence review" })
+        .click();
+    }
+    await page.getByRole("tab", { name: "Funding plan", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Review packet", exact: true })
       .click();
     assert.equal(
       await page
-        .getByRole("button", { name: "Save lending policy" })
+        .getByRole("button", { name: "Record demo packet acceptance" })
         .isDisabled(),
       true,
     );
-    await page.locator('[data-audience="institution"]').click();
-    assert.equal(await page.locator(".institution-summary").count(), 1);
-    await page.getByRole("button", { name: "Configure policy" }).click();
-    for (const [name, value] of Object.entries({
-      interest: 0,
-      maxLtv: 40,
-      maxDsr: 30,
-      minScore: 90,
-    }))
-      await page.locator(`#policy-form [name="${name}"]`).fill(String(value));
-    await page.getByRole("button", { name: "Save lending policy" }).click();
-    const newPolicy = await page.evaluate(() => ({
-      policy: data.policy,
-      r: assess(data.apps.find((a) => a.name === "QA Garden Residence")),
-    }));
-    assert.equal(newPolicy.policy.version, 2);
-    assert.ok(Math.abs(newPolicy.r.payment - 850 / 60) < 1e-8);
-    assert.ok(Math.abs(newPolicy.r.loanCeiling - 600) < 1e-8);
-    assert.equal(newPolicy.r.decision, "Outside policy");
-    await page.reload();
-    assert.equal(await page.evaluate(() => data.policy.version), 2);
-    console.log(
-      "PASS: four stakeholder perspectives, investor comparison, lender controls, zero-interest edge case and policy persistence",
+    await page.keyboard.press("Escape");
+    await role("lender");
+    await page
+      .getByRole("button", { name: "Review packet", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Record demo packet acceptance" })
+      .click();
+    assert.equal(
+      await page.evaluate(() => activeCase().packetStatus),
+      "Accepted",
     );
-
-    // Use another origin-isolated browser context to avoid leaving demo edits.
+    assert.equal(
+      await page.evaluate(() => activeCase().creditStatus),
+      "Not requested",
+    );
+    await page.getByRole("button", { name: "Edit assumptions" }).click();
+    await page.locator('[name="facility"]').fill("241000000");
+    await page.locator('[name="facilityReference"]').fill("DEMO-FAC-026");
+    await page.locator('[name="active"]').check();
+    await page
+      .getByRole("button", { name: "Save funding assumptions" })
+      .click();
+    assert.match(
+      await page.locator(".form-error").textContent(),
+      /cannot exceed/,
+    );
+    await page.locator('[name="facility"]').fill("240000000");
+    await page
+      .getByRole("button", { name: "Save funding assumptions" })
+      .click();
+    assert.equal(await page.evaluate(() => rcFinance(activeCase()).gap), 0);
+    console.log(
+      "PASS: source review, evidence states, separate packet acceptance and bounded demo facility",
+    );
+    await role("reviewer");
+    await page
+      .getByRole("tab", { name: "Scope & budget", exact: true })
+      .click();
+    await page
+      .getByRole("button", {
+        name: "Review Waterproofing & wet areas",
+        exact: true,
+      })
+      .click();
+    await page.locator('[name="rate"]').fill("650000");
+    await page
+      .locator('[name="note"]')
+      .fill("Demo quote revised. Re-review the budget and funding conditions.");
+    await page.getByRole("button", { name: "Confirm reviewed line" }).click();
+    const revised = await page.evaluate(() => ({
+      version: activeCase().version,
+      accepted: activeCase().acceptedVersion,
+      active: activeCase().facilityActive,
+      original: activeCase().lines[0].originalRate,
+      current: activeCase().lines[0].rate,
+      snapshot: activeCase().snapshots[0],
+    }));
+    assert.equal(revised.version, 3);
+    assert.equal(revised.accepted, null);
+    assert.equal(revised.active, false);
+    assert.equal(revised.original, 600000);
+    assert.equal(revised.current, 650000);
+    assert.equal(revised.snapshot.version, 2);
+    await page
+      .getByRole("tab", { name: "Changes & claims", exact: true })
+      .click();
+    assert.equal(
+      await page.locator('[data-change="CO-008"]').isDisabled(),
+      true,
+    );
+    await role("owner");
+    await page.locator('[data-change="CO-008"]').click();
+    await page.locator('[name="ack"]').check();
+    await page
+      .getByRole("button", { name: "Record demo owner acknowledgment" })
+      .click();
+    await role("reviewer");
+    await page.locator('[data-change="CO-008"]').click();
+    await page
+      .locator('[name="note"]')
+      .fill("Fictional owner acknowledgment and change scope reviewed.");
+    await page
+      .getByRole("button", { name: "Accept change for budget re-review" })
+      .click();
+    assert.equal(await page.evaluate(() => activeCase().version), 4);
+    assert.equal(await page.evaluate(() => activeCase().lines.length), 7);
+    assert.equal(
+      await page.evaluate(() => activeCase().changes[0].status),
+      "Accepted",
+    );
+    console.log(
+      "PASS: versioned budgets, preserved source values, approval invalidation and owner-first change review",
+    );
+    await page
+      .getByRole("button", { name: "Export packet", exact: true })
+      .click();
+    const downloading = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Structured packet", exact: false })
+      .click();
+    const downloaded = await downloading;
+    const packet = JSON.parse(
+      await fs.readFile(await downloaded.path(), "utf8"),
+    );
+    assert.equal(packet.schema, "RC-PACKET/1.0");
+    assert.equal(packet.amountUnit, "rupiah");
+    assert.equal(packet.budgetVersion, 4);
+    assert.equal(packet.scope[0].originalRate, 600000);
+    assert.equal(packet.prototype, true);
+    assert.equal(packet.readiness.budgetReviewed, false);
+    const popupEvent = page.waitForEvent("popup");
+    await page
+      .getByRole("button", { name: "Readable lender memo", exact: false })
+      .click();
+    const popup = await popupEvent;
+    await popup.waitForLoadState();
+    assert.match(
+      await popup.locator("body").textContent(),
+      /What needs attention/,
+    );
+    assert.match(
+      await popup.locator("body").textContent(),
+      /not a bank approval/,
+    );
+    await popup.close();
+    await page.keyboard.press("Escape");
+    console.log(
+      "PASS: frozen JSON packet and print-ready lender memo preserve source and readiness states",
+    );
+    await caseUI("Bintaro Courtyard");
+    await page
+      .getByRole("tab", { name: "Changes & claims", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Request correction", exact: true })
+      .click();
+    await page
+      .locator('[name="note"]')
+      .fill("Demo finishing evidence needs a clearer quantity record.");
+    await page
+      .getByRole("button", { name: "Record correction request", exact: true })
+      .click();
+    assert.equal(
+      await page.evaluate(() => activeCase().claim.status),
+      "Correction requested",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Record demo authorization", exact: true })
+        .count(),
+      0,
+    );
+    await page
+      .getByRole("button", { name: "Review revised submission", exact: true })
+      .click();
+    await page.locator('[name="reference"]').fill("DEMO-REV-012");
+    await page
+      .locator('[name="note"]')
+      .fill("Revised demo evidence received for a new certification review.");
+    await page
+      .getByRole("button", {
+        name: "Record revised demo submission",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("button", { name: "Review & certify", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Record demo certification", exact: true })
+      .click();
+    assert.equal(
+      await page.evaluate(() => rcClaimTotals(activeCase()).certified),
+      52000000,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Record demo authorization", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await role("lender");
+    await page
+      .getByRole("button", { name: "Record demo authorization", exact: true })
+      .click();
+    await page.locator('[name="reference"]').fill("DEMO-AUTH-012");
+    await page
+      .getByRole("button", { name: "Record demo authorization", exact: true })
+      .last()
+      .click();
+    assert.equal(
+      await page.evaluate(() => activeCase().claim.status),
+      "Authorized",
+    );
+    assert.equal(
+      await page.evaluate(() => rcClaimTotals(activeCase()).paid),
+      0,
+    );
+    await page
+      .getByRole("button", { name: "Record external payment", exact: true })
+      .click();
+    await page.locator('[name="reference"]').fill("DEMO-PAY-001");
+    await page.locator('[name="amount"]').fill("40000000");
+    await page
+      .getByRole("button", { name: "Save demo payment record" })
+      .click();
+    assert.equal(
+      await page.evaluate(() => activeCase().claim.status),
+      "Partially paid",
+    );
+    await page
+      .getByRole("button", { name: "Record external payment", exact: true })
+      .click();
+    await page.locator('[name="reference"]').fill("DEMO-PAY-001");
+    await page
+      .getByRole("button", { name: "Save demo payment record" })
+      .click();
+    assert.match(
+      await page.locator(".form-error").textContent(),
+      /already recorded/,
+    );
+    await page.locator('[name="reference"]').fill("DEMO-PAY-002");
+    await page
+      .getByRole("button", { name: "Save demo payment record" })
+      .click();
+    assert.equal(await page.evaluate(() => activeCase().claim.status), "Paid");
+    assert.equal(await page.evaluate(() => rcFinance(activeCase()).gap), 0);
+    await role("reviewer");
+    await page
+      .getByRole("button", { name: "Reconcile payment records", exact: true })
+      .click();
+    const reconciled = await page.evaluate(() => ({
+      status: activeCase().claim.status,
+      ...rcClaimTotals(activeCase()),
+      payments: activeCase().claim.payments.length,
+    }));
+    assert.equal(reconciled.status, "Reconciled");
+    assert.equal(reconciled.requested, 60000000);
+    assert.equal(reconciled.paid, 52000000);
+    assert.equal(reconciled.payments, 2);
+    assert.match(await page.locator(".held-amount").textContent(), /8 jt/);
+    await page.reload();
+    await caseUI("Bintaro Courtyard");
+    await page
+      .getByRole("tab", { name: "Changes & claims", exact: true })
+      .click();
+    assert.equal(
+      await page.evaluate(() => activeCase().claim.status),
+      "Reconciled",
+    );
+    console.log(
+      "PASS: separate certification, lender authorization, partial payments, duplicate protection, reconciliation and persistence",
+    );
+    await page.locator('.sidebar [data-page="cases"]').click();
+    await page.locator("#case-search").fill("Bekasi");
+    assert.equal(await page.locator("#case-results tbody tr").count(), 1);
+    await page.getByRole("button", { name: "New case", exact: true }).click();
+    await page.locator('[name="name"]').fill("QA <Garden> Home");
+    await page.locator('[name="owner"]').fill("Fictional Owner");
+    await page.locator('[name="location"]').fill("Bekasi, Jawa Barat");
+    await page
+      .locator('[name="objective"]')
+      .fill("Repair the wet-area finishes with a clear cash plan.");
+    await page
+      .getByRole("button", { name: "Create draft case", exact: false })
+      .click();
+    assert.match(
+      await page.locator(".case-heading h1").textContent(),
+      /QA <Garden> Home/,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Accept reviewed budget", exact: true })
+        .isDisabled(),
+      true,
+    );
+    assert.equal(
+      await page.evaluate(() => activeCase().unknownCosts.length),
+      1,
+    );
+    await page.getByRole("button", { name: "Add line", exact: true }).click();
+    await page.locator('[name="label"]').fill("Demo light fixture");
+    await page
+      .locator('[name="spec"]')
+      .fill("Source-linked fixture installation");
+    await page.locator('[name="source"]').fill("Demo quote · page 1 · item 2");
+    await page
+      .getByRole("button", { name: "Add unreviewed scope line" })
+      .click();
+    assert.equal(await page.evaluate(() => activeCase().lines.length), 2);
+    assert.equal(
+      await page.evaluate(() => activeCase().lines[1].reviewed),
+      false,
+    );
+    console.log(
+      "PASS: case search, safe fictional intake, unpriced cost gates and source-linked scope creation",
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(external, []);
+    assert.deepEqual(failures, []);
     const mobile = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      reducedMotion: "reduce",
-    });
-    const m = await mobile.newPage();
+        viewport: { width: 390, height: 844 },
+        reducedMotion: "reduce",
+      }),
+      m = await mobile.newPage();
     await m.goto(base + prefix);
     assert.equal(
       await m.evaluate(() => document.documentElement.scrollWidth),
       390,
     );
     await m.getByRole("button", { name: "Toggle navigation" }).click();
-    await m.locator('.sidebar [data-page="applications"]').click();
-    await m.getByRole("button", { name: "New application" }).click();
-    const close = m.getByRole("button", { name: "Close dialog" });
+    await m.locator('.sidebar [data-page="claims"]').click();
+    await m
+      .getByRole("button", { name: "Open claim workspace", exact: true })
+      .click();
+    await m
+      .getByRole("button", { name: "Review & certify", exact: true })
+      .click();
+    const close = m.getByRole("button", { name: "Close dialog", exact: true });
     await close.focus();
     await m.keyboard.press("Shift+Tab");
     assert.equal(
       await m.evaluate(() => document.activeElement.textContent.trim()),
-      "Create & assess application",
+      "Record demo certification",
     );
     await m.keyboard.press("Tab");
     assert.equal(
@@ -391,18 +480,40 @@ const server = http.createServer(async (req, res) => {
     );
     await m.keyboard.press("Escape");
     assert.equal(await m.locator(".modal").count(), 0);
+    await m.getByRole("tab", { name: "Scope & budget", exact: true }).click();
+    await m.keyboard.press("End");
     assert.equal(
-      await m.evaluate(() => document.documentElement.scrollWidth),
-      390,
+      await m.locator('[role="tab"][aria-selected="true"]').textContent(),
+      "History",
+    );
+    await m.evaluate(() => openCase("RC-025", "scope"));
+    await m
+      .getByRole("button", {
+        name: "Review Waterproofing & wet areas",
+        exact: true,
+      })
+      .click();
+    await m.locator('[name="rate"]').fill("500000");
+    await m
+      .locator('[name="note"]')
+      .fill("Demo revised quote invalidates the old claim baseline.");
+    await m.getByRole("button", { name: "Confirm reviewed line" }).click();
+    await m.getByRole("tab", { name: "Changes & claims", exact: true }).click();
+    assert.match(
+      await m.locator(".claim-content").textContent(),
+      /Stale baseline/,
+    );
+    assert.equal(
+      await m
+        .getByRole("button", { name: "Review & certify", exact: true })
+        .isDisabled(),
+      true,
     );
     console.log(
-      "PASS: mobile layout, navigation, keyboard focus trap and Escape",
+      "PASS: mobile navigation, dialog focus trap, keyboard tabs and stale-claim prevention",
     );
-    assert.deepEqual(errors, []);
-    assert.deepEqual(external, []);
-    assert.deepEqual(failures, []);
     console.log(
-      "PASS: no browser errors, failed resources or external requests",
+      "PASS: no page errors, external requests or failed application assets",
     );
   } finally {
     await browser?.close();

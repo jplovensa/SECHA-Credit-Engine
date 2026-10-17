@@ -37,7 +37,7 @@ jobs:
       - name: Prepare static artifact
         run: |
           mkdir _site
-          cp index.html styles.css app.js intelligence.js _site/
+          cp index.html styles.css app.js model.js _site/
           cp -R assets _site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
