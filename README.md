@@ -1,6 +1,6 @@
 # RenovaCredit by SECHA
 
-An interactive mockup of an evidence-led renovation finance workflow for Indonesia. The terracotta, ivory, sand and sage identity is retained, while the dashboard now prioritizes case actions, budget review, evidence and funding gaps. No composite credit score or property-value prediction is used.
+An interactive mockup of an evidence-led renovation finance workflow for Indonesia. A calm eucalyptus, warm-white and muted terracotta identity pairs a new architectural logo with locally hosted Inter. The dashboard prioritizes due-date actions, a focused case summary, budget review, evidence and funding gaps. No composite credit score or property-value prediction is used.
 
 ## Run
 
@@ -30,7 +30,7 @@ All cases, people, sources, professional reviews, facility references and paymen
 
 This implements an interactive demonstration of the PRD workflow, not the production PRD's server authorization, tenant isolation, secure uploads, professional review, immutable ledger, institutional approval, payment integration, backup/retention, or predictive models. A print-ready memo uses browser Print / Save as PDF; the app has no PDF server.
 
-`model.js` contains the fictional dataset and calculation helpers. `app.js` implements the five tabs and demo transitions. `styles.css` supplies the responsive terracotta design. Money is stored/displayed as integer IDR in this browser mockup; production accounting still needs the specified decimal/transaction-safe server implementation. Quantity × rate totals round to whole IDR.
+`model.js` contains the fictional dataset and calculation helpers. `app.js` implements the five tabs and demo transitions. `styles.css` supplies the responsive eucalyptus and warm-white design. Money is stored/displayed as integer IDR in this browser mockup; production accounting still needs the specified decimal/transaction-safe server implementation. Quantity × rate totals round to whole IDR.
 
 Funding calculations distinguish known project costs, owner cash remaining, usable/undrawn facility and externally recorded payments. Certified-but-unpaid work remains within the remaining cash need. The demo claim agreement explicitly has no retention or advance recovery; it does not imply a universal bank disbursement formula. A stale baseline is held for re-review; automatic claim migration/rebasing is deliberately not provided.
 
